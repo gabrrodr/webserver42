@@ -1,0 +1,14 @@
+connect() vs bind()
+
+1. Purpose:
+    bind(): used by the server to associate a socket with a specific local IP address and port number
+    connect(): used by the client to establish a connection to a specific remote server IP address and port number
+
+2. What it does:
+    bind() sets the local address and port for the socket
+    connect() sets the remote address and port for the socket and initiates a connection
+
+3. typically used by:
+    bind(): by servers to listen for incoming connections
+    connect(): by clients to connect to servers
+
