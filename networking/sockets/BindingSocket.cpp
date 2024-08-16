@@ -1,15 +1,13 @@
 #include "BindingSocket.hpp"
 
 //constructor
-GS::BindingSocket(int domain, int serviceType, int protocol, int port, u_long ip) : 
-    Socket(domain, serviceType, protocol, port, ip) {
+BindingSocket::BindingSocket(int domain, int serviceType, int protocol, int port, u_long ip) : SimpleSocket(domain, serviceType, protocol, port, ip) {
         set_connection(connect_to_network(get_sock(), get_address()));
         test_connection(get_connection());
-
     }
 
 //definition of connetc_to network virtual funtion
-int GS::BindingSocket::connect_to_network(int sock, struct sockaddr_in address) {
+int BindingSocket::connect_to_network(int sock, struct sockaddr_in address) {
     return bind(sock, (struct sockaddr *)&address, sizeof(address));
     //socket to be bind, address to bind to, size of address structure
 }

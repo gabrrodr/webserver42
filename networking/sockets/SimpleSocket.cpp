@@ -1,10 +1,10 @@
-#include "Socket.hpp"
+#include "SimpleSocket.hpp"
 
-GS::Socket::Socket(int domain, int serviceType, int protocol, int port, u_long ip) {
+SimpleSocket::SimpleSocket(int domain, int serviceType, int protocol, int port, u_long ip) {
     //define address struct
     address.sin_family = domain;
     address.sin_port = htons(port);
-    address.sin_address.s_addr = htonl(ip);
+    address.sin_addr.s_addr = htonl(ip);
     //establish socket
     this->sock = socket(domain, serviceType, protocol);
     test_connection(sock);
@@ -17,28 +17,27 @@ GS::Socket::Socket(int domain, int serviceType, int protocol, int port, u_long i
 
 //virtual function
 //checks if the socket or the connection has been properly established
-void    GS::Socket::test_connection(int test) {
+void    SimpleSocket::test_connection(int test) {
     if (test < 0) {
-        perror("Failed to connect");
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("Failed to connect");
     }
 }
 
 //getter functions
-int GS::Socket::get_sock() {
-    return this->sock;
+int SimpleSocket::get_sock(void) {
+    return sock;
 }
 
-struct  sockaddr_in GS::Socket::get_address() {
-    return this->address;
+struct  sockaddr_in SimpleSocket::get_address() {
+    return address;
 }
 
-int GS::Socket::get_connection() {
-    return this->connection;
+int SimpleSocket::get_connection() {
+    return connection;
 }
 
 //setter functions
 
-void    GS::Socket::set_connection(int con) {
-    this->connection = con;
+void    SimpleSocket::set_connection(int con) {
+    connection = con;
 }
