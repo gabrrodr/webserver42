@@ -7,5 +7,8 @@
 #include "./sockets/BindingSocket.hpp"
 #include "./servers/SimpleServer.hpp"
 #include "./servers/TestServer.hpp"
+#include "utils.hpp"
 #include <unistd.h>
+
+#define DEF_CONFIG "./conf/valid/example.conf"
 #endif
