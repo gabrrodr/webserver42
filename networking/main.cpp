@@ -15,7 +15,7 @@ void    write_line(std::ofstream &file, const std::string &line) {
 }
 
 void    generate_file() {
-    std::string path = "./example";
+    std::string path = "./example.conf";
     std::ofstream   file;
 
     file.open(path.c_str(), std::ios::out);
@@ -26,8 +26,10 @@ void    generate_file() {
     write_line(file, "server {");
     write_line(file, "\tlisten 8080");
     write_line(file, "\tserver_name localhost");
-    write_line(file, "\troot web/");
-    write_line(file, "\tindex index.html");
+    write_line(file, "\tlocation / {");
+    write_line(file, "\t\troot web/");
+    write_line(file, "\t\tindex index.html");
+    write_line(file, "\t}");
     write_line(file, "\tlocation /onlyget {");
     write_line(file, "\t\tmethods GET");
     write_line(file, "\t}");

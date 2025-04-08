@@ -188,6 +188,7 @@ void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
     std::vector<pollfd>             poll_fds;
 
     Log::error("\033[35mSETTIN UP SERVERS...\033[0m\n");
+
     for (size_t i = 0; i < servers.size(); ++i) {
         try {
 
