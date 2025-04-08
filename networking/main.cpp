@@ -1,15 +1,4 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: gabrrodr <gabrrodr@student.42porto.com>    +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/08/16 18:01:18 by gabrrodr          #+#    #+#             */
-/*   Updated: 2024/08/16 18:01:18 by gabrrodr         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
+#include <fstream>
 #include "MainHeader.hpp"
 
 void    write_line(std::ofstream &file, const std::string &line) {
@@ -22,13 +11,13 @@ void    generate_file() {
 
     file.open(path.c_str(), std::ios::out);
     if (!file.is_open()) {
-        Log::error("parser error: Could not open file " + std::string(file));
+        Log::error("parser error: Could not open file\n ");
         exit(1) ;
     }
     write_line(file, "server {");
     write_line(file, "\tlisten 8080");
     write_line(file, "\tserver_name localhost");
-    write_line(file, "\tdocroot /var/www/");
+    write_line(file, "\troot web/");
     write_line(file, "\tindex index.html");
     write_line(file, "\tlocation /onlyget {");
     write_line(file, "\t\tmethods GET");
@@ -41,19 +30,50 @@ void    generate_file() {
     exit(0);
 }
 
-void    help(char **argv) {
+int    help(char **argv) {
     if (argv[1] && (!std::strcmp(argv[1], "--generate"))) {
-            generate_file();
+        generate_file();
+        return (1);
     }
+    return (0);
 }
 
 int main(int argc, char **argv, char **env) {
     //copyEnv(env);
     if (argc != 2) {
-        std::cout << "Invalid! Usage: ./webserv [configuration file]" << std::endl;
-        std::cout << "options: ./webserv --generate (generate default configuration file)" << std::endl;
+        Log::error("Invalid! Usage: ./webserv [configuration file]\noptions: ./webserv --generate (generate default configuration file)");
         return (1);
     }
-    help(argv);
-    
+    if (!help(argv) && argc == 2) {
+        try {
+            ConfigParser    parser(argv[1]);
+            std::vector<ServerConfig>   servers = parser.parse();
+            for (size_t i = 0; i < servers.size(); ++i) {
+            std::cout << "Server " << i + 1 << ":\n";
+            std::cout << "  Port: " << servers[i].port << "\n";
+            std::cout << "  Server Name: " << servers[i].server_name << "\n";
+            std::cout << "  Error Page: " << servers[i].error_page << "\n";
+            std::cout << "  Max Body Size: " << servers[i].client_max_body_size << " bytes\n";
+                for (std::map<std::string, Location>::iterator it = servers[i].locations.begin(); it != servers[i].locations.end(); ++it) {
+                    std::cout << "  Location: " << it->first << "\n";
+                    std::cout << "    Root: " << it->second.root << "\n";
+                    std::cout << "    Index: " << it->second.index << "\n";
+                    std::cout << "    Methods: ";
+                    for (size_t j = 0; j < it->second.methods.size(); ++j) {
+                        std::cout << it->second.methods[j] << (j + 1 < it->second.methods.size() ? ", " : "");
+                    }
+                    std::cout << "\n";
+                    if (!it->second.upload_dir.empty()) {
+                        std::cout << "    Upload Dir: " << it->second.upload_dir << "\n";
+                    }
+                }
+            }
+            handleIncomingConnections(servers);
+        } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+        }
+    }
+        
+    return 0;
 }

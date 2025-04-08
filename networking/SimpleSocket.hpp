@@ -8,6 +8,13 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <stdexcept>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <map>
+#include <cstring>
+#include <poll.h>
 
 // socketFunction, create socket itself
 // bind it to the network

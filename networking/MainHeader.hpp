@@ -1,14 +1,20 @@
 #ifndef MAIN_HEADER_HPP
 #define MAIN_HEADER_HPP
 
-#include "./sockets/SimpleSocket.hpp"
-#include "./sockets/ListeningSocket.hpp"
-#include "./sockets/ConnectionSocket.hpp"
-#include "./sockets/BindingSocket.hpp"
-#include "./servers/SimpleServer.hpp"
-#include "./servers/TestServer.hpp"
-#include "utils.hpp"
-#include <unistd.h>
+#include "SimpleSocket.hpp"
+#include "ListeningSocket.hpp"
+#include "ConnectionSocket.hpp"
+#include "BindingSocket.hpp"
+#include "Log.hpp"
+//#include "Utils.hpp"
+#include "Config.hpp"
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <stdexcept>
+#include <sys/socket.h>
+#include <ctime>
 
-#define DEF_CONFIG "./conf/valid/example.conf"
+
+# define DEF_CONFIG "./conf/valid/example.conf"
 #endif

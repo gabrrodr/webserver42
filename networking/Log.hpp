@@ -4,6 +4,6 @@
 
 class Log {
     public:
-        void    error(const std::string &msg);
+        static void    error(const std::string &msg);        
 };
 #endif

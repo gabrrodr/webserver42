@@ -12,3 +12,29 @@ connect() vs bind()
     bind(): by servers to listen for incoming connections
     connect(): by clients to connect to servers
 
+
+
+Following is a very brief summary of what a status code denotes:
+1xx indicates an informational message only
+2xx indicates success of some kind
+3xx redirects the client to another URL
+4xx indicates an error on the client's part
+5xx indicates an error on the server's part
+
+GET
+
+HTTP GET method is used to read (or retrieve) a representation of a resource.
+In case of success (or non-error), GET returns a representation of the resource 
+in response body and HTTP response status code of 200 (OK). In an error case, 
+it most often returns a 404 (NOT FOUND) or 400 (BAD REQUEST).
+
+POST
+
+HTTP POST method is most often utilized to create new resources.
+On successful creation, HTTP response code 201 (Created) is returned.
+
+DELETE
+
+HTTP DELETE is stright forward.
+It deletes a resource specified in URI. On successful deletion, 
+it returns HTTP response status code 204 (No Content).

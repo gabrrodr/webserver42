@@ -13,6 +13,7 @@ class ConnectionSocket : public SimpleSocket
         //virtual funtion from parent socket
         int connect_to_network(int sock, struct sockaddr_in address);
 };
+
 //}
 
 #endif

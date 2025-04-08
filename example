@@ -1,0 +1,12 @@
+server {
+	listen 8080
+	server_name localhost
+	docroot /var/www/
+	index index.html
+	location /onlyget {
+		methods GET
+	}
+	location /onlypost {
+		methods POST
+	}
+}
