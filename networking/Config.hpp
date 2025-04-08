@@ -1,5 +1,4 @@
-#ifndef CONFIG_HPP
-#define CONFIG_HPP
+#pragma once
 
 #include "MainHeader.hpp"
 #include <iostream>
@@ -11,6 +10,7 @@
 #include <fcntl.h>
 
 struct  Location {
+    //can i initialize here, all empty = "", except methods
     std::string root;
     std::string index;
     std::string upload_dir;
@@ -18,6 +18,7 @@ struct  Location {
 };
 
 struct  ServerConfig {
+    //initialize? 80; 1 << 20 (1MB); "localhost"; "error.html";
     int port;
     size_t  client_max_body_size;
     std::string server_name;
@@ -28,20 +29,20 @@ struct  ServerConfig {
 class   ConfigParser {
     private:
         std::string filename_;
-        ServerConfig    parseServer(std::ifstream& filename, std::string& line);
-        Location    parseLocation(std::ifstream& filename);
+        ServerConfig    parseServer(std::ifstream& file, std::string& line);
+        Location    parseLocation(std::ifstream& file);
 
     public:
-        bool    isLocation(const std::string& line);
         ConfigParser(const std::string& filename);
         std::vector<ServerConfig>   parse();
+
+        bool    isLocation(const std::string& line);
         void    trim(std::string& str);
         std::vector<std::string>    split(const std::string& str, char delimiter);
         size_t  parseSize(const std::string& str);
+        //maybe instead of server use location, cleaner
         void    parseRoot(const std::string& line, Location& server);
 };
 
-void    setupServerSockets(const std::vector<ServerConfig>& servers);
+//void  setupServerSockets(const std::vector<ServerConfig>& servers);
 void    handleIncomingConnections(const std::vector<ServerConfig>& servers);
-
-#endif

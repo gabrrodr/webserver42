@@ -82,6 +82,7 @@ bool    ConfigParser::isLocation(const std::string& line) {
     return false;
 }
 
+
 ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line) {
     ServerConfig    server;
     trim(line);
@@ -103,8 +104,15 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
                 server.error_page = line.substr(11); }
             else if (line.find("client_max_body_size ") == 0) {
                 server.client_max_body_size = parseSize(line.substr(22)); }
-            else if (isLocation(line) == true) {
-                parseLocation(file);
+            else if (line.find("location ") == 0) {
+                std::string locationPath = line.substr(9);
+                trim(locationPath);
+                if (locationPath.back() == '{') {
+                    locationPath.pop_back();
+                    trim(locationPath);
+                }
+                Location location = parseLocation(file);
+                server.locations[locationPath] = location;
             } else {
                 throw std::runtime_error("Unknown directive (parse server): " + line);
             }
@@ -148,6 +156,19 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
     return location;
 }
 
+//set up listening sockets (server sockets)
+//using poll() to handle multiple connections and monitor server and client sockets
+//are new connections accepted and stored correctly?
+//client sockets handled after connection (just accepted for now)
+//memory leaks?
+//can the loop handle multiple connections simultaneously?
+//making sockets non-blocking using fcntl
+//socket set up and connection handling in different functions!!
+//keep a list of active sockets
+
+/*
+-this is doing nothing.divide handleIncomingConnections into two functions at least and use this
+
 void    setupServerSockets(const std::vector<ServerConfig>& servers) {
     std::vector<ListeningSocket*>   serverSockets;
     for (size_t i = 0; i < servers.size(); ++i) {
@@ -160,7 +181,7 @@ void    setupServerSockets(const std::vector<ServerConfig>& servers) {
             Log::error("Failed to set up server on port (set up server socket): " + std::to_string(servers[i].port) + " " + e.what());
         }
     }
-}
+}*/
 
 void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
     std::vector<ListeningSocket*>   sockets;

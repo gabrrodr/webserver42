@@ -1,3 +1,23 @@
+SimpleSocket - Raw socket creation + basic accessors
+
+BindingSocket - Binding the socket to address/port
+
+ListeningSocket - calling listen() with a backlog
+
+    - creates a socket, binds it to a port(binding)
+    - starts listening
+
+
+poll() Loop
+    Monitors multiple server sockets for incoming connections (event driven)
+    Doesnt block one server while another waits.
+
+clientSocket = accept()
+    accepts client connection
+    returns file descriptor for that specific client
+
+
+
 connect() vs bind()
 
 1. Purpose:
@@ -14,7 +34,7 @@ connect() vs bind()
 
 
 
-Following is a very brief summary of what a status code denotes:
+summary of what a status code denotes:
 1xx indicates an informational message only
 2xx indicates success of some kind
 3xx redirects the client to another URL

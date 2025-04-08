@@ -6,7 +6,6 @@
 #include "ConnectionSocket.hpp"
 #include "BindingSocket.hpp"
 #include "Log.hpp"
-//#include "Utils.hpp"
 #include "Config.hpp"
 #include <iostream>
 #include <cstring>

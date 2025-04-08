@@ -9,9 +9,9 @@ HEADERS	=	networking/MainHeader.hpp
 SRCS	=	networking/main.cpp \
 			networking/Log.cpp \
 			networking/SimpleSocket.cpp \
-			networking/ConnectionSocket.cpp \
 			networking/BindingSocket.cpp \
 			networking/ListeningSocket.cpp \
+			networking/ConnectionSocket.cpp \
 			networking/Config.cpp \
 			#networking/Utils.cpp \
 
