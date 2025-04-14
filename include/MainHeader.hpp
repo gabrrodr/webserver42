@@ -7,6 +7,7 @@
 #include "BindingSocket.hpp"
 #include "Log.hpp"
 #include "Config.hpp"
+#include <cstdlib>
 #include <iostream>
 #include <cstring>
 #include <vector>

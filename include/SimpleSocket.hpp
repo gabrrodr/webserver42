@@ -29,6 +29,7 @@ private:
 public:
     //constructor
     SimpleSocket(int domain, int serviceType, int protocol, int port, u_long ip);
+    virtual ~SimpleSocket();
     //function to connect to network. virtual because different types of sockets need to do something different here
     virtual int connect_to_network(int sock, struct sockaddr_in address) = 0;
     //test connections and sockets

@@ -1,5 +1,5 @@
 #include <fstream>
-#include "MainHeader.hpp"
+#include "../include/MainHeader.hpp"
 
 // Configurable launch- check
 // default config generator (--generate creates a default config file)

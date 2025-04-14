@@ -1,4 +1,5 @@
-#include "Config.hpp"
+#include "../include/Config.hpp"
+#include <string>
 
 ConfigParser::ConfigParser(const std::string& filename) : filename_(filename) {}
 
@@ -238,7 +239,7 @@ void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
             }
 
         } catch (std::exception& e) {
-            Log::error("Failed to set up server on port : " + std::to_string(servers[i].port) + " " + e.what());
+            Log::error("Failed to set up server on port : " + servers[i].port);
         }
     }
 

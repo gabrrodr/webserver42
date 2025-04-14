@@ -1,10 +1,12 @@
-#include "BindingSocket.hpp"
+#include "../include/BindingSocket.hpp"
 
 //constructor
 BindingSocket::BindingSocket(int domain, int serviceType, int protocol, int port, u_long ip) : SimpleSocket(domain, serviceType, protocol, port, ip) {
         set_connection(connect_to_network(get_sock(), get_address()));
         test_connection(get_connection());
     }
+
+BindingSocket::~BindingSocket() {}
 
 //definition of connetc_to network virtual funtion
 int BindingSocket::connect_to_network(int sock, struct sockaddr_in address) {

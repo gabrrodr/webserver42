@@ -3,36 +3,43 @@ GREEN	:= \033[0;32m
 RESET	:= \033[0m
 
 
-NAME 	=	webserv
-HEADERS	=	networking/MainHeader.hpp 
+NAME 	= webserv
+SRC_DIR	= source/
+INC		= include/
+OBJ_DIR = bin/
+SRCS	=	$(addprefix $(SRC_DIR), main.cpp \
+									Log.cpp \
+									SimpleSocket.cpp \
+									BindingSocket.cpp \
+									ListeningSocket.cpp \
+									ConnectionSocket.cpp \
+									Config.cpp \
+									Utils.cpp)
+OBJ		= $(patsubst $(SRC_DIR)%.cpp, $(OBJ_DIR)%.o, $(SRCS)) 
+FLAGS	= -Wall -Wextra -Werror -std=c++98 -g
 
-SRCS	=	networking/main.cpp \
-			networking/Log.cpp \
-			networking/SimpleSocket.cpp \
-			networking/BindingSocket.cpp \
-			networking/ListeningSocket.cpp \
-			networking/ConnectionSocket.cpp \
-			networking/Config.cpp \
-			#networking/Utils.cpp \
+$(OBJ_DIR)%.o: $(SRC_DIR)%.cpp | $(OBJ_DIR)
+	c++ $(FLAGS) -c $< -o $@
+	@echo "[${GREEN}compiling${END}]: $<"
 
-OBJ = $(SRCS:.cpp=.o) 
+all: $(NAME)
 
-all:
-	@$(MAKE) $(NAME)
+$(OBJ_DIR):
+	mkdir bin/
+	@echo "${GREEN}bin created${END}"
 
-
-$(NAME) : $(OBJ) $(HEADERS)
-	c++ -Wall -Wextra -Werror -std=c++98 $(OBJ) -o $(NAME)
-	@echo -e "$(GREEN)-COMPILATION DONE... $(RESET)"
+$(NAME): $(OBJ)
+	c++ $(FLAGS) -I $(INC) $(OBJ) -o $(NAME)
+	@echo "${GREEN}${NAME} executable created${END}"
 
 clean:
-	rm -rf $(OBJ)
+	@rm -rf ${OBJ_DIR}
+	@echo "${RED}cleaning objects${END}"
 
 fclean: clean
-	rm -f $(NAME)
-	@echo -e "$(RED)-WEBSERV GONE... $(RESET)"
+	@rm -rf ${NAME}
+	@echo "${RED}${NAME} deleted${END}"
 
-re:		fclean all
-
+re: fclean all
 
 .PHONY: all clean fclean re
