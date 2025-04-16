@@ -13,8 +13,7 @@ SRCS	=	$(addprefix $(SRC_DIR), main.cpp \
 									BindingSocket.cpp \
 									ListeningSocket.cpp \
 									ConnectionSocket.cpp \
-									Config.cpp \
-									Utils.cpp)
+									Config.cpp)
 OBJ		= $(patsubst $(SRC_DIR)%.cpp, $(OBJ_DIR)%.o, $(SRCS)) 
 FLAGS	= -Wall -Wextra -Werror -std=c++98 -g
 

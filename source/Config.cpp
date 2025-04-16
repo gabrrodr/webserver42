@@ -49,9 +49,10 @@ std::vector<std::string>    ConfigParser::split(const std::string& str, char del
 
 size_t  ConfigParser::parseSize(const std::string& str) {
     size_t size = std::atoi(str.c_str());
-        if (str.back() == 'M') {    
+    char lastChar = str[str.length() - 1];
+        if (lastChar == 'M') {    
             size *= 1024 * 1024;
-        } else if (str.back() == 'K') {
+        } else if (lastChar == 'K') {
             size *= 1024;
         }
         return size;
@@ -108,8 +109,8 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
             else if (line.find("location ") == 0) {
                 std::string locationPath = line.substr(9);
                 trim(locationPath);
-                if (locationPath.back() == '{') {
-                    locationPath.pop_back();
+                if (!locationPath.empty() && locationPath[locationPath.size() - 1] == '{') {
+                    locationPath = locationPath.substr(0, locationPath.size() - 1);
                     trim(locationPath);
                 }
                 Location location = parseLocation(file);
