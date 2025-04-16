@@ -1,4 +1,4 @@
-#include "ConnectionSocket.hpp"
+#include "../include/ConnectionSocket.hpp"
 //this would be the client socket, so that we have client and server
 
 //Constructor
@@ -6,6 +6,8 @@ ConnectionSocket::ConnectionSocket(int domain, int serviceType, int protocol, in
         set_connection(connect_to_network(get_sock(), get_address()));
         test_connection(get_connection());
 }
+
+ConnectionSocket::~ConnectionSocket() {}
 
 int ConnectionSocket::connect_to_network(int sock, struct sockaddr_in address) {
     return connect(sock, (struct sockaddr *)&address, sizeof(address));

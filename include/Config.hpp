@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CONFIG_HPP
+#define CONFIG_HPP
 
 #include "MainHeader.hpp"
 #include <iostream>
@@ -46,3 +47,5 @@ class   ConfigParser {
 
 //void  setupServerSockets(const std::vector<ServerConfig>& servers);
 void    handleIncomingConnections(const std::vector<ServerConfig>& servers);
+
+#endif

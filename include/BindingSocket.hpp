@@ -8,6 +8,7 @@ class BindingSocket : public SimpleSocket {
 public:
     //Constructor
     BindingSocket(int domain, int serviceType, int protocol, int port, u_long ip);
+    ~BindingSocket();
     //virtual function from parent Socket
     int connect_to_network(int sock, struct sockaddr_in address);
 };

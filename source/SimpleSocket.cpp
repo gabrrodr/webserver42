@@ -1,4 +1,4 @@
-#include "SimpleSocket.hpp"
+#include "../include/SimpleSocket.hpp"
 
 SimpleSocket::SimpleSocket(int domain, int serviceType, int protocol, int port, u_long ip) {
     //define address struct
@@ -14,6 +14,8 @@ SimpleSocket::SimpleSocket(int domain, int serviceType, int protocol, int port, 
     //this->connection = connect_to_network(sock, address);
     //test_connection(connection);
 }
+
+SimpleSocket::~SimpleSocket() {}
 
 //virtual function
 //checks if the socket or the connection has been properly established
