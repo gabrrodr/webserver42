@@ -1,0 +1,15 @@
+
+body
+{
+	background: #3F5EFB;
+	background: radial-gradient(circle, rgba(63, 94, 251, 1) 0%, rgba(237, 55, 45, 1) 54%, rgba(252, 200, 70, 1) 100%);
+}
+
+#container
+{
+	background-color: azure;
+	margin-top: 5%;
+	margin-left: 10%;
+	margin-right: 10%;
+	padding: 2%;
+}
