@@ -1,15 +1,28 @@
 
 body
 {
-	background: #3F5EFB;
-	background: radial-gradient(circle, rgba(63, 94, 251, 1) 0%, rgba(237, 55, 45, 1) 54%, rgba(252, 200, 70, 1) 100%);
+	background: linear-gradient(0deg,rgba(176, 72, 169, 1) 35%, rgba(71, 139, 222, 1) 100%);
 }
 
 #container
 {
-	background-color: azure;
+	background-color: white;
 	margin-top: 5%;
 	margin-left: 10%;
 	margin-right: 10%;
 	padding: 2%;
+	border-radius: 15px;
+}
+
+#content
+{
+	margin-top: 5%;
+}
+
+#content img
+{
+	max-width: 25%;
+	max-height: 500px;
+	padding-right: 3%;
+	padding-left: 3%;
 }
