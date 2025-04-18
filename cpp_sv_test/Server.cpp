@@ -191,6 +191,13 @@ void	Server::closeClient(int fd)
 	}
 }
 
+static bool	endsWith(const std::string &str, const std::string &suffix)
+{
+	if (str.size() < suffix.size())
+		return (false);
+	return (str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0);
+}	
+
 std::string	Server::buildHttpResponse(const std::string &request)
 {
 	std::istringstream	ss(request);
@@ -215,8 +222,20 @@ std::string	Server::buildHttpResponse(const std::string &request)
 		body << file.rdbuf();
 		std::string content = body.str();
 
+		std::string contentType = "text/plain";
+		if (endsWith(path, ".html"))
+			contentType = "text/html";
+		else if (endsWith(path, ".css"))
+			contentType = "text/css";
+		else if (endsWith(path, ".js"))
+			contentType = "application/javascript";
+		else if (endsWith(path, ".png"))
+			contentType = "image/png";
+		else if (endsWith(path, ".jpg") || endsWith(path, ".jpeg"))
+			contentType = "image/jpeg";
+
 		response << "HTTP/1.1 200 OK\r\n";
-		response << "Content-Type: text/html\r\n";
+		response << "Content-Type: " << contentType << "\r\n";
 		response << "Content-Length: " << content.size() << "\r\n\r\n";
 		response << content;		
 	}
