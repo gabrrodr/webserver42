@@ -41,6 +41,41 @@ summary of what a status code denotes:
 4xx indicates an error on the client's part
 5xx indicates an error on the server's part
 
+
+Static File Serving (GET)
+    - when a browser sends a GET /index.html, our server should:
+        1. Parse the request 
+        2. Check if it's a GET request
+        3. Match the requested path to a local file path (based on config)
+        4. Open that file and read its contents
+        5. Send back a proper HTTP 200 response with the file content
+        6. Send 404 or 405 if file doesnt exist or method isnt valid
+
+    HTTP Request Structure:                                                             _
+    start line - http version & request method                                           |__ head of the request
+    header - metadata that describes msg (eg Host, user-agent, content type, etc)       _|
+    empty line - to show that message is complete                                        |__ body
+    body - optional. data associated with the message. POST data, etc                   _|
+
+
+    Example:
+        POST /users HTTP/1.1   ------> <method> <request-target> <protocol>
+        Host: example.com
+        Content-Type: application/x-www-form-urlencoded
+        Content-Length: 50
+
+        name=FirstName%20LastName&email=bsmth%40example.com
+
+Request-target:
+    relative or absolute URL.
+
+    origin form:
+        GET /en-US/docs/Web/HTTP/Guides/Messages HTTP/1.1
+    absolute form:
+        GET https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Messages HTTP/1.1
+
+Methods:
+
 GET
 
 HTTP GET method is used to read (or retrieve) a representation of a resource.
@@ -58,3 +93,118 @@ DELETE
 HTTP DELETE is stright forward.
 It deletes a resource specified in URI. On successful deletion, 
 it returns HTTP response status code 204 (No Content).
+
+
+
+
+handleIncomingConnections Function. Explained:
+
+This is my main server loop.
+It takes a list of ServerConfig Objects(that i parsed from my config file)
+Each ServerConfig ahs info like port, root path, allowed methods, etc
+
+I need to use this info to create and run my web servers.
+
+std::vector<ListeningSocket*> sockets;  ---> this will store my Listening server sockets (1 per port)
+
+std::vector<pollfd> poll_fds;  ---> used by poll() system call to monitor multiple sockets for activity. (incoming connections or client data)
+    - like a task list of file descriptors to check (is anything happening on these sockets)
+
+Then we enter this for loop:
+    for (size_t i = 0; i < servers.size(); ++i) 
+
+    -this loops over every server in the config file.
+    -for each one i created a server socket that listens on its port
+
+Then i create a new TCP socket (IPv4) that listens on servers[i].port:
+    ListeningSocket *server = new ListeningSocket(AF_INET, SOCK_STREAM, 0, servers[i].port, INADDR_ANY, 10);
+
+    AF_INET = IPv4
+    SOCK_STREAM = TCP
+    INADDR_ANY = bind to all available interfaces
+    10 = backlog(max number of waiting connections)
+
+Then i get the fd (int) for the listening sockets:
+    int sock_fd = server->get_sock();
+
+Then, so my program doesnt freeze if no one is connecting i set up the listening socket as non-blocking:
+    fcntl(sock_fd, F_SETFL, O_NONBLOCK);
+Now its safe to use accept() even if no one is connecting.
+
+
+Then i tell poll() to watch this socket and notify me when someone has to connect (POLLIN = data to read),
+and i add it to poll_fds.
+
+pollfd pfd;
+pfd.fd = sock_fd;
+pfd.events = POLLIN;
+poll_fds.push_back(pfd);
+
+
+then i enter the main event loop. the heart of my servers. its where it runs forever watching for events:
+
+    int activity = poll(&poll_fds[0], poll_fds.size(), -1);
+
+    - i make a call to poll, starts at the first element of the vector, the size is to see how many file descriptors to watch,
+    and the -1 is to wait FOREVER until something happens
+
+then I handle each poll event:
+    for (size_t i = 0; i < poll_fds.size(); ++i) {
+    if (poll_fds[i].revents & POLLIN) {
+
+        - i loop over each socket poll() is watching
+        - revents is set by poll() to tell me what happened and POLLIN ("there is something to read")
+
+If the FD thats ready is a listening socket someone is trying to connect.
+so i call accept() to accept them.
+
+    if (isListeningSocket(poll_fds[i].fd, sockets)) {
+    
+    int clientSocket = accept(...);
+
+then, after it connects, i log the connection and set up the client socket non blocking too. We dont want any client blocking my server
+
+then i also add the clients socket to poll_fds so that i can recv from them next time around the loop
+
+then, IF ITS A CLIENT sending a request instead of a listeningSocket i access handleClientRequests(poll_fds, i)
+
+
+handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) function EXPLAINED:
+(passed as reference because im modifying it.)
+
+    here im handling 1 specific client socket.
+    - poll_fds - list of all the sockets being monitored
+    - index in the list that points to the client we're handling
+
+first I read data from client:
+
+    char buffer[4096];  ---> buffer to hold clients message
+    int fd = poll_fds[i].fd;  ---> grab file descriptor from poll event
+    int bytesReceived = recv(fd, buffer, sizeof(buffer) - 1, 0);  ---> call recv() to read data.
+                                                                        reads up to 4095 bytes 
+                                                                        stores result in buffer
+                                                                        returns number of bytes Received
+
+if (bytesReceived <= 0) {  ---> remove client from poll_fds and free socket
+
+Then I interpret the clients request:
+    buffer is converted into a string and i print out the raw http request to the console
+
+    eg:
+        GET / HTTP/1.1
+    Host: localhost:8080
+    User-Agent: Mozilla/5.0 ...
+
+Then i give a really basic response (It works)
+
+    - i send the response to the client.
+    - close fd to end connection
+    - remove it from the poll_fds list
+    
+
+
+
+
+
+
+
