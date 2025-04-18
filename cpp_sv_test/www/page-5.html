@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" href="../css/main.css">
+		<link rel="stylesheet" href="../css/header.css">
+		<link rel="stylesheet" href="../css/navbar.css">
+		<title>Home</title>
+	</head>
+	<body>
+		<div id="header">
+			<img id="webserv-logo" src="../assets/img/webserv-logo.png" alt="webserv-logo">
+		</div>
+		<div id="container">
+			<div id="navbar"></div>
+			<script>
+				fetch('./include/navbar.html')
+				.then(res => res.text())
+				.then(data => { document.getElementById('navbar').innerHTML = data; });
+			</script>
+			<div id="content">
+				<img src="../assets/img/cat-1.jpeg" alt="cat-1">
+				<img src="../assets/img/cat-2.jpeg" alt="cat-2">
+				<img src="../assets/img/cat-3.jpeg" alt="cat-3">
+			</div>
+		</div>
+	</body>
+</html>
