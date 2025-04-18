@@ -1,5 +1,7 @@
 #include "../include/Config.hpp"
 #include <string>
+#include "Utils.cpp"
+
 
 ConfigParser::ConfigParser(const std::string& filename) : filename_(filename) {}
 
@@ -185,6 +187,42 @@ void    setupServerSockets(const std::vector<ServerConfig>& servers) {
     }
 }*/
 
+void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
+
+    char buffer[4096];
+    int fd = poll_fds[i].fd;
+    int bytesReceived = recv(fd, buffer, sizeof(buffer) - 1, 0);
+
+    if (bytesReceived <= 0) {
+        std::cout << "Client disconnected or error on FD: " << fd << std::endl;
+        close(fd);
+        poll_fds.erase(poll_fds.begin() + i);
+        --i;
+        return;
+    }
+
+    buffer[bytesReceived] = '\0';
+    std::string request(buffer);
+    std::cout << "Received request:\n" << request << std::endl;
+
+    // Very basic response
+    std::string body = "<html><body><h1>It works!</h1></body></html>";
+    std::stringstream ss;
+    ss << body.length();
+    std::string contentLength = ss.str();
+
+    std::string response =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: " + contentLength + "\r\n"
+        "\r\n" + body;
+
+    send(fd, response.c_str(), response.length(), 0);
+    close(fd);
+    poll_fds.erase(poll_fds.begin() + i);
+    --i;
+}
+
 void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
     std::vector<ListeningSocket*>   sockets;
     std::vector<pollfd>             poll_fds;
@@ -208,7 +246,8 @@ void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
             sockets.push_back(server);
             std::cout << "Server listening on port " << servers[i].port << std::endl;
 
-            std::vector<ConnectionSocket*> clientSockets;
+            //vector to store client sockets but now using for now
+            //std::vector<ConnectionSocket*> clientSockets;
 
             std::cout << "Entering main event loop..." << std::endl;
 
@@ -220,22 +259,52 @@ void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
                 }
 
                 for (size_t i = 0; i < poll_fds.size(); ++i) {
+
                     if (poll_fds[i].revents & POLLIN) {
-                        struct sockaddr_in  clientAddress;
-                        socklen_t           clientAddressLength = sizeof(clientAddress);
 
-                        std::cout << "Incoming connection detected on socket..." << poll_fds[i].fd << std::endl;
+                        //check if the event is for the listening socket
+                        if (isListeningSocket(poll_fds[i].fd, sockets)) {
+                           
+                            struct sockaddr_in  clientAddress;
+                            socklen_t           clientAddressLength = sizeof(clientAddress);
+
+                            std::cout << "Incoming connection detected on socket..." << poll_fds[i].fd << std::endl;
+                            
+                            int clientSocket = accept(poll_fds[i].fd, (struct sockaddr*)&clientAddress, &clientAddressLength);
+
+                            if (clientSocket < 0) {
+                                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                                    //std::cout << "No incoming connections" << std::endl;
+                                    continue;
+                                }
+                                Log::error("Failed to accept incoming connection ");
+                                continue;
+                            }
                         
-                        int clientSocket = accept(poll_fds[i].fd, (struct sockaddr*)&clientAddress, &clientAddressLength);
+                            std::cout << "New client connected! FD:" << clientSocket << std::endl;
+                            
+                            fcntl(clientSocket, F_SETFL, O_NONBLOCK);
+                            pollfd  client_fd;
+                            client_fd.fd = clientSocket;
+                            client_fd.events = POLLIN;
+                            poll_fds.push_back(client_fd);
+                            
+                        } else {
 
-                        if (clientSocket < 0) {
-                            Log::error("Failed to accept incoming connection");
-                            continue;
+                            handleClientRequests(poll_fds, i);
+
                         }
+
+                       /* 
                         ConnectionSocket* client = new ConnectionSocket(AF_INET, SOCK_STREAM, 0, 0, 0);
                         client->set_connection(clientSocket);
                         clientSockets.push_back(client);
-                        std::cout << "New client connected! FD:" << clientSocket << std::endl;
+                        */
+
+                        //(sets to non-blocking mode
+                        //add client socket to poll_fds so i can recv() from it
+
+                        /*handleClientRequest(poll_fds[i].fd, sockets)*/
                     }
                 }
             }

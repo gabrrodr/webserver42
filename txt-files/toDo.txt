@@ -42,3 +42,19 @@ what we have from the project:
 |  Send appropriate reply  |
 +--------------------------+
 
+Gaby:
+
+Mini Checklist
+ Parse request method + path
+
+ Match location based on config
+
+ Build the file path (root + requested path)
+
+ Read file contents
+
+ Send back a correct HTTP response
+
+ Handle file not found (404)
+
+ Handle disallowed method (405)
