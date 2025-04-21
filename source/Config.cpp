@@ -218,15 +218,39 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
     std::string contentLength = ss.str();
 
     ss >> method >> uri >> version;
-    path = "./www" + uri;
+   	path = "./www" + uri;
+	if (uri == "/")
+		path = "./www/index.html";
     std::ifstream   file(path.c_str());
+    std::ostringstream  body;
     if (!file)
-		response += "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found\n";
+	{
+		// this should be our config error_file however this function isn't a ServerConfig member function
+		// so i'll see that later
+		std::cout << "no such file: " << path << '\n';
+		path = "./www/404.html";
+		std::ifstream errorFile(path.c_str());
+		if (errorFile)
+		{
+        	body << errorFile.rdbuf();
+        	content = body.str();
+        	response += "HTTP/1.1 404 Not Found\r\n";
+        	response += "Content-Type: text/html\r\n";
+        	response += "Content-Length: ";
+			response += content.size();
+			response += "\r\n\r\n";
+        	response += content;
+		}
+		else
+		{
+			std::cerr << "404.html not found or could not be opened.\n";
+			response += "HTTP/1.1 500 Internal Server Error\r\n\r\n";
+		}
+	}
     else
     {
-        std::ostringstream  body;
         body << file.rdbuf();
-        std::string content = body.str();
+        content = body.str();
         std::string contentType = "text/plain";
 		if (endsWith(path, ".html"))
 			contentType = "text/html";
