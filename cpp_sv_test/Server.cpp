@@ -151,6 +151,9 @@ void	Server::handleClientRead(int fd)
 	Client &client = _clients[fd];
 	client.readBuffer.append(buffer, bytes);
 
+	std::cout << "buffer		: _" << buffer << "_\n";
+	std::cout << "readBuffer	: _" << client.readBuffer << "_\n";
+
 	if (client.readBuffer.find("\r\n\r\n") != std::string::npos)
 	{
 		client.requestComplete = true;
@@ -200,10 +203,15 @@ static bool	endsWith(const std::string &str, const std::string &suffix)
 
 std::string	Server::buildHttpResponse(const std::string &request)
 {
+	std::cout << "request	: " << request << '\n';
 	std::istringstream	ss(request);
 	std::string	method, uri, version;
 
 	ss >> method >> uri >> version;
+
+	std::cout << "method	: " << method << '\n'
+			  << "uri	: " << uri << '\n'
+			  << "version	: " << version << '\n';
 
 	std::string	path = "./www" + uri;
 	if (uri == "/")
