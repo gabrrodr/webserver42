@@ -187,6 +187,13 @@ void    setupServerSockets(const std::vector<ServerConfig>& servers) {
     }
 }*/
 
+static bool	endsWith(std::string path, std::string find)
+{
+	if (path.size() < find.size())
+		return (false);
+	return(path.compare(path.size() - find.size(), find.size(), find) == 0);
+}
+
 void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
 
     char buffer[4096];
@@ -205,18 +212,40 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
     std::string request(buffer);
     std::cout << "Received request:\n" << request << std::endl;
 
-    // Very basic response
-    std::string body = "<html><body><h1>It works!</h1></body></html>";
-    std::stringstream ss;
-    ss << body.length();
+    std::string	response;
+    std::stringstream ss(buffer);
+    std::string method, uri, version, path, content;
     std::string contentLength = ss.str();
 
-    std::string response =
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: " + contentLength + "\r\n"
-        "\r\n" + body;
-
+    ss >> method >> uri >> version;
+    path = "./www" + uri;
+    std::ifstream   file(path.c_str());
+    if (!file)
+		response += "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found\n";
+    else
+    {
+        std::ostringstream  body;
+        body << file.rdbuf();
+        std::string content = body.str();
+        std::string contentType = "text/plain";
+		if (endsWith(path, ".html"))
+			contentType = "text/html";
+		else if (endsWith(path, ".css"))
+			contentType = "text/css";
+		else if (endsWith(path, ".js"))
+			contentType = "application/javascript";
+		else if (endsWith(path, ".png"))
+			contentType = "image/png";
+		else if (endsWith(path, ".jpg") || endsWith(path, ".jpeg"))
+			contentType = "image/jpeg";		
+		response += "HTTP/1.1 200 OK\r\n";
+		response += "Content-Type: ";
+		response += contentType;
+		response += "\r\nContent-Length: ";
+		response += content.size();
+		response += "\r\n\r\n";
+		response += content;		
+    }
     send(fd, response.c_str(), response.length(), 0);
     close(fd);
     poll_fds.erase(poll_fds.begin() + i);
