@@ -187,11 +187,42 @@ void    setupServerSockets(const std::vector<ServerConfig>& servers) {
     }
 }*/
 
+// utils
+// checks path
+// might change to another solution later since this one is kind of ugly looking
 static bool	endsWith(std::string path, std::string find)
 {
 	if (path.size() < find.size())
 		return (false);
 	return(path.compare(path.size() - find.size(), find.size(), find) == 0);
+}
+// utils
+// correctly transforms the Content Length to the expected format
+template <typename T>
+static std::string  toString(T value)
+{
+    std::stringstream   stream;
+    stream << value;
+    return (stream.str());
+}
+
+static void sendFullResponse(int fd, const std::string &response)
+{
+    size_t  totalSent = 0;
+    size_t  responseLength = response.length();
+
+    while (totalSent < responseLength)
+    {
+        ssize_t sent = send(fd, response.c_str() + totalSent, responseLength - totalSent, 0);
+        if (sent < 0)
+        {
+            Log::error("Failed to send full response.");
+            break;
+        }
+        totalSent += sent;
+    }
+    if (totalSent < responseLength)
+        Log::error("Response not fully send. Sent: " + toString(totalSent) + " of " + toString(responseLength));
 }
 
 void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
@@ -210,7 +241,8 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
 
     buffer[bytesReceived] = '\0';
     std::string request(buffer);
-    std::cout << "Received request:\n" << request << std::endl;
+    std::cout << "buffer:\n_" << buffer << "_\n";
+    std::cout << "Received request:\n_" << request << "_\n";
 
     std::string	response;
     std::stringstream ss(buffer);
@@ -218,6 +250,7 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
     std::string contentLength = ss.str();
 
     ss >> method >> uri >> version;
+    std::cout << "Method: " << method << ", URI: " << uri << ", Version: " << version << "\n\n";
    	path = "./www" + uri;
 	if (uri == "/")
 		path = "./www/index.html";
@@ -237,14 +270,16 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
         	response += "HTTP/1.1 404 Not Found\r\n";
         	response += "Content-Type: text/html\r\n";
         	response += "Content-Length: ";
-			response += content.size();
+			response += toString(content.length());
+            response += "\r\nConnection: close\r\n\r\n";
 			response += "\r\n\r\n";
         	response += content;
 		}
 		else
 		{
 			std::cerr << "404.html not found or could not be opened.\n";
-			response += "HTTP/1.1 500 Internal Server Error\r\n\r\n";
+			response += "HTTP/1.1 500 Internal Server Error\r\n";
+            response += "Connection: close\r\n\r\n";
 		}
 	}
     else
@@ -261,16 +296,19 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
 		else if (endsWith(path, ".png"))
 			contentType = "image/png";
 		else if (endsWith(path, ".jpg") || endsWith(path, ".jpeg"))
-			contentType = "image/jpeg";		
+			contentType = "image/jpeg";
+        else
+            Log::error("Unknown type: " + path + '\n'); // added to see what the tester might send through here
 		response += "HTTP/1.1 200 OK\r\n";
 		response += "Content-Type: ";
 		response += contentType;
 		response += "\r\nContent-Length: ";
-		response += content.size();
-		response += "\r\n\r\n";
-		response += content;		
+		response += toString(content.length());
+		response += "\r\nConnection: close\r\n\r\n";
+		response += content;
     }
-    send(fd, response.c_str(), response.length(), 0);
+    sendFullResponse(fd, response);
+    //send(fd, response.c_str(), response.length(), 0);// void sendFullResponse(int fd, const std::string& response)
     close(fd);
     poll_fds.erase(poll_fds.begin() + i);
     --i;

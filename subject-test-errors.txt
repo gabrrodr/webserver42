@@ -1,0 +1,131 @@
+
+testing server:
+	
+	- curl -v http://localhost:8080
+		- when using curl server seems to work fine
+		  it just doesn't answer to IPv6, other than that it seems okay
+
+	- telnet localhost 8080
+
+	- nc localhost 8080
+
+	- ./ubuntu_tester http://localhost:8080
+
+
+✅
+Test GET http://localhost:8080/
+FATAL ERROR ON LAST TEST: Get "http://localhost:8080/": net/http: HTTP/1.x transport connection broken: malformed MIME header line: Content-Length: 
+
+	- MIME header line "Content-Length:" mallformed
+		- fixed with: template <typename T> std::string toString(T val);
+		  equivalent to c++17 std::to_string
+
+
+❌
+Test GET http://localhost:8080/
+FATAL ERROR ON LAST TEST: Get "http://localhost:8080/": net/http: HTTP/1.x transport connection broken: write tcp 127.0.0.1:57290->127.0.0.1:8080: write: connection reset by peer
+
+Test GET http://localhost:8080/
+FATAL ERROR ON LAST TEST: Get "http://localhost:8080/": net/http: HTTP/1.x transport connection broken: write tcp 127.0.0.1:56230->127.0.0.1:8080: write: connection reset by peer
+
+Test GET http://localhost:8080/
+FATAL ERROR ON LAST TEST: read tcp 127.0.0.1:60192->127.0.0.1:8080: use of closed network connection
+
+	- GET sometimes works, but other times it closes the socket too early, possibly due to:
+		- a threading or forking issue(one handler killing the connection too soon)
+		- a race condition where the socket is closed before the response is sent
+		- handling a second request on a reused socket improperly(e.g. if it's HTTP/1.1 and the test expects Keep-Alive)
+
+	- Possible fixes:
+		- add to header: "Connection: close\r\n";
+			while adding this to the header might make sense in some cases, it
+			probably will need more aproaches
+		- close the socket only when the full response has been sent somehow?
+		  not sure how to see if the connection to the socket is still neeeded
+		  but maybe that can work
+
+	I don't quite understand these tests, but the GET request they send to the server don't seem to be 
+	very consistent, I am not sure if this is a server side issue or a tester side issue.
+	Sometimes the GET test goes through without a problem, other times it gives "FATAL ERROR".
+	I have noticed the request string isn't consistent when using the ubuntu_tester, it doesn't seem
+	to get the whole request string, examples of requests received by ubuntu_tester and printed on our console
+	(using '_' to wrap the request and buffer string):
+
+	1 - No GET error from ubuntu_tester
+	Incoming connection detected on socket...3
+	New client connected! FD:4
+	buffer:
+	_POST / HTTP/1.1
+	Host: localhost:8080
+	Use_
+	Received request:
+	_POST / HTTP/1.1
+	Host: localhost:8080
+	Use_
+	Method: POST, URI: /, Version: HTTP/1.1
+
+	2 - No GET error from ubuntu_tester
+	Incoming connection detected on socket...3
+	New client connected! FD:4
+	buffer:
+	_POST / HTTP/1.1
+	Host: localhost:8080
+	User-Agent: Go-h_
+	Received request:
+	_POST / HTTP/1.1
+	Host: localhost:8080
+	User-Agent: Go-h_
+	Method: POST, URI: /, Version: HTTP/1.1
+
+	3 - FATAL ERROR ON LAST TEST: read tcp 127.0.0.1:51848->127.0.0.1:8080: use of closed network connection
+	Incoming connection detected on socket...3
+	New client connected! FD:4
+	buffer:
+	_GET / HTTP/1.1
+	Host: localh_
+	Received request:
+	_GET / HTTP/1.1
+	Host: localh_
+	Method: GET, URI: /, Version: HTTP/1.1
+
+	4 - FATAL ERROR ON LAST TEST: Get "http://localhost:8080/": net/http: HTTP/1.x transport connection broken: 
+	write tcp 127.0.0.1:56296->127.0.0.1:8080: write: connection reset by peer
+	Incoming connection detected on socket...3
+	New client connected! FD:4
+	buffer:
+	_GET / HTTP/1.1
+	Host_
+	Received request:
+	_GET / HTTP/1.1
+	Host_
+	Method: GET, URI: /, Version: HTTP/1.1
+
+
+	Conclusion: server GET requests seem to fail sometimes when using the ubuntu_tester, however when using
+	Siege to stress test the server on the same path: http://localhost:8080/, we get the following:
+
+	{
+		"transactions":			      828038,
+		"availability":			      100.00,
+		"elapsed_time":			       83.11,
+		"data_transferred":		     5587.60,
+		"response_time":		        0.00,
+		"transaction_rate":		     9963.16,
+		"throughput":			       67.23,
+		"concurrency":			       24.42,
+		"successful_transactions":	      828038,
+		"failed_transactions":		           0,
+		"longest_transaction":		        4.07,
+		"shortest_transaction":		        0.00
+	}
+
+	in 83seconds, a total of almost 1 million transactions with 0 failed.
+	At this point I have no idea if there's even anything wrong with the way we're taking care of GET
+	requests, since Siege output seems good.
+
+
+❌
+Test POST http://localhost:8080/ with a size of 0
+FATAL ERROR ON LAST TEST: bad status code
+
+	- POST not yet implemented so this is expected
