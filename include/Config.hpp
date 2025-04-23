@@ -20,7 +20,7 @@ struct  Location {
 
 struct  ServerConfig {
     //initialize? 80; 1 << 20 (1MB); "localhost"; "error.html";
-    int port;
+    std::vector<int> port;
     size_t  client_max_body_size;
     std::string server_name;
     std::string error_page;
@@ -43,6 +43,8 @@ class   ConfigParser {
         size_t  parseSize(const std::string& str);
         //maybe instead of server use location, cleaner
         void    parseRoot(const std::string& line, Location& server);
+		std::vector<int>	parsePorts(const std::string	&line);
+		bool	isPort(std::string &token);
 };
 
 //void  setupServerSockets(const std::vector<ServerConfig>& servers);
