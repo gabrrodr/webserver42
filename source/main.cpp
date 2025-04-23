@@ -63,14 +63,16 @@ int main(int argc, char **argv, char **env) {
         try {
             ConfigParser    parser(argv[1]);
             std::vector<ServerConfig>   servers = parser.parse();
-        
-            for (size_t i = 0; i < servers.size(); ++i) {
-            std::cout << "Server " << i + 1 << ":\n";
-            std::cout << "  Port: " << servers[i].port << "\n";
-            std::cout << "  Server Name: " << servers[i].server_name << "\n";
-            std::cout << "  Error Page: " << servers[i].error_page << "\n";
-            std::cout << "  Max Body Size: " << servers[i].client_max_body_size << " bytes\n";
 
+            for (size_t i = 0; i < servers.size(); ++i)
+            {
+                std::cout << "Server " << i + 1 << ":\n";
+                std::cout << "Port: ";
+                for (size_t p = 0; p < servers[i].port.size(); p++)
+                    std::cout << servers[i].port[p] << " ";
+                std::cout << "\n  Server Name: " << servers[i].server_name << "\n";
+                std::cout << "  Error Page: " << servers[i].error_page << "\n";
+                std::cout << "  Max Body Size: " << servers[i].client_max_body_size << " bytes\n";
                 for (std::map<std::string, Location>::iterator it = servers[i].locations.begin(); it != servers[i].locations.end(); ++it) {
                     std::cout << "  Location: " << it->first << "\n";
                     std::cout << "    Root: " << it->second.root << "\n";

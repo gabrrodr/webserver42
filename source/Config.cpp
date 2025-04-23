@@ -86,47 +86,77 @@ bool    ConfigParser::isLocation(const std::string& line) {
     return false;
 }
 
+static bool isOnlyNumber(std::string &str)
+{
+    for (size_t i = 0; i < str.size(); i++)
+    {
+        if (!std::isdigit(str[i]) && str[i] != ';')
+            return (false);
+    }
+    return (!str.empty());
+}
 
-ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line) {
+bool    ConfigParser::isPort(std::string &token) { return (isOnlyNumber(token)); }
+
+std::vector<int>    ConfigParser::parsePorts(const std::string &line)
+{
+    std::vector<int>    ports;
+    std::stringstream   ss(line);
+    std::string token;
+
+    while (ss >> token)
+    {
+        if (isPort(token))
+            ports.push_back(atoi(token.c_str()));
+    }
+    return (ports);
+}
+
+ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line)
+{
     ServerConfig    server;
     trim(line);
-    if (line != "server {") {
+    if (line != "server {")
         throw std::runtime_error("Unexpected end of file");
-    }
     std::cout << "Parsing server..." << std::endl;
-    while (std::getline(file, line)) {
-            trim(line);
-            if (line == "}")
-                break;
-            if (line.empty() || line[0] == '#')
-                continue;
-            if (line.find("listen ") == 0) {
-                server.port = std::atoi(line.substr(7).c_str()); }
-            else if (line.find("server_name ") == 0) {
-                server.server_name = line.substr(12); }
-            else if (line.find("error_page ") == 0) {
-                server.error_page = line.substr(11); }
-            else if (line.find("client_max_body_size ") == 0) {
-                server.client_max_body_size = parseSize(line.substr(22)); }
-            else if (line.find("location ") == 0) {
-                std::string locationPath = line.substr(9);
+    while (std::getline(file, line))
+    {
+        trim(line);
+        if (line == "}")
+            break;
+        if (line.empty() || line[0] == '#')
+            continue;
+        if (line.find("listen ") == 0) 
+            server.port = parsePorts(line); 
+        else if (line.find("server_name ") == 0)
+            server.server_name = line.substr(12);
+        else if (line.find("error_page ") == 0)
+            server.error_page = line.substr(11);
+        else if (line.find("client_max_body_size ") == 0)
+            server.client_max_body_size = parseSize(line.substr(22));
+        else if (line.find("location ") == 0)
+        {
+            std::string locationPath = line.substr(9);
+            trim(locationPath);
+            if (!locationPath.empty() && locationPath[locationPath.size() - 1] == '{')
+            {
+                locationPath = locationPath.substr(0, locationPath.size() - 1);
                 trim(locationPath);
-                if (!locationPath.empty() && locationPath[locationPath.size() - 1] == '{') {
-                    locationPath = locationPath.substr(0, locationPath.size() - 1);
-                    trim(locationPath);
-                }
-                Location location = parseLocation(file);
-                server.locations[locationPath] = location;
-            } else {
-                throw std::runtime_error("Unknown directive (parse server): " + line);
             }
+            Location location = parseLocation(file);
+            server.locations[locationPath] = location;
         }
-        std::cout << "Server parsed!" << std::endl;
-        std::cout << "Port: " << server.port << std::endl;
-        std::cout << "Server Name: " << server.server_name << std::endl;
-        std::cout << "Error Page: " << server.error_page << std::endl;
-        std::cout << "Max Body Size: " << server.client_max_body_size << std::endl;
-        return server;
+        else
+            throw std::runtime_error("Unknown directive (parse server): " + line);
+    }
+    std::cout << "Server parsed!" << std::endl;
+    std::cout << "Port: ";
+    for (size_t i = 0; i < server.port.size(); i++)
+        std::cout << server.port[i] << " ";
+    std::cout << "\nServer Name: " << server.server_name << std::endl;
+    std::cout << "Error Page: " << server.error_page << std::endl;
+    std::cout << "Max Body Size: " << server.client_max_body_size << std::endl;
+    return server;
 }
 
 Location    ConfigParser::parseLocation(std::ifstream& file) {
@@ -314,98 +344,78 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
     --i;
 }
 
+static void    setupListeningSocket(const ServerConfig &servers, std::vector<pollfd> *poll_fds, std::vector<ListeningSocket*> *sockets)
+{
+    for (size_t j = 0; j < servers.port.size(); j++)
+    {
+        try
+        {
+            std::cout << "Setting up server on port " << servers.port[j] << std::endl;
+            ListeningSocket *server = new ListeningSocket(AF_INET, SOCK_STREAM, 0, servers.port[j], INADDR_ANY, 10);
+            int sock_fd = server->get_sock();
+            fcntl(sock_fd, F_SETFL, O_NONBLOCK);
+            pollfd  pfd;
+            pfd.fd = sock_fd;
+            pfd.events = POLLIN;
+            poll_fds->push_back(pfd);
+            sockets->push_back(server);
+            std::cout << "Server listening on port " << servers.port[j] << std::endl;
+        }
+        catch(const std::exception& e)
+        {
+            Log::error("Failed to set up server on port : " + servers.port[j] + '\n');
+        }
+    }
+}
+
 void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
     std::vector<ListeningSocket*>   sockets;
     std::vector<pollfd>             poll_fds;
 
     Log::error("\033[35mSETTIN UP SERVERS...\033[0m\n");
 
-    for (size_t i = 0; i < servers.size(); ++i) {
-        try {
+    for (size_t i = 0; i < servers.size(); ++i)
+        setupListeningSocket(servers[i], &poll_fds, &sockets);
 
-            std::cout << "Setting up server on port " << servers[i].port << std::endl;
-            ListeningSocket *server = new ListeningSocket(AF_INET, SOCK_STREAM, 0, servers[i].port, INADDR_ANY, 10);
-            int sock_fd = server->get_sock();
-
-            fcntl(sock_fd, F_SETFL, O_NONBLOCK);
-
-            pollfd  pfd;
-            pfd.fd = sock_fd;
-            pfd.events = POLLIN;
-            poll_fds.push_back(pfd);
-
-            sockets.push_back(server);
-            std::cout << "Server listening on port " << servers[i].port << std::endl;
-
-            //vector to store client sockets but now using for now
-            //std::vector<ConnectionSocket*> clientSockets;
-
-            std::cout << "Entering main event loop..." << std::endl;
-
-            while (true) {
-                int activity = poll(&poll_fds[0], poll_fds.size(), -1);
-                if (activity < 0) {
-                    Log::error("Poll failed");
-                    continue;
-                }
-
-                for (size_t i = 0; i < poll_fds.size(); ++i) {
-
-                    if (poll_fds[i].revents & POLLIN) {
-
-                        //check if the event is for the listening socket
-                        if (isListeningSocket(poll_fds[i].fd, sockets)) {
-                           
-                            struct sockaddr_in  clientAddress;
-                            socklen_t           clientAddressLength = sizeof(clientAddress);
-
-                            std::cout << "Incoming connection detected on socket..." << poll_fds[i].fd << std::endl;
-                            
-                            int clientSocket = accept(poll_fds[i].fd, (struct sockaddr*)&clientAddress, &clientAddressLength);
-
-                            if (clientSocket < 0) {
-                                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                                    //std::cout << "No incoming connections" << std::endl;
-                                    continue;
-                                }
-                                Log::error("Failed to accept incoming connection ");
-                                continue;
-                            }
-                        
-                            std::cout << "New client connected! FD:" << clientSocket << std::endl;
-                            
-                            fcntl(clientSocket, F_SETFL, O_NONBLOCK);
-                            pollfd  client_fd;
-                            client_fd.fd = clientSocket;
-                            client_fd.events = POLLIN;
-                            poll_fds.push_back(client_fd);
-                            
-                        } else {
-
-                            handleClientRequests(poll_fds, i);
-
-                        }
-
-                       /* 
-                        ConnectionSocket* client = new ConnectionSocket(AF_INET, SOCK_STREAM, 0, 0, 0);
-                        client->set_connection(clientSocket);
-                        clientSockets.push_back(client);
-                        */
-
-                        //(sets to non-blocking mode
-                        //add client socket to poll_fds so i can recv() from it
-
-                        /*handleClientRequest(poll_fds[i].fd, sockets)*/
+    std::cout << "Entering main event loop..." << std::endl;
+    while (true)
+    {
+        int activity = poll(&poll_fds[0], poll_fds.size(), -1);
+        if (activity < 0)
+        {
+            Log::error("Poll failed");
+            continue;
+        }
+        for (size_t i = 0; i < poll_fds.size(); ++i)
+        {
+            if (poll_fds[i].revents & POLLIN)
+            {
+                //check if the event is for the listening socket
+                if (isListeningSocket(poll_fds[i].fd, sockets))
+                {           
+                    struct sockaddr_in  clientAddress;
+                    socklen_t           clientAddressLength = sizeof(clientAddress);
+                    std::cout << "Incoming connection detected on socket..." << poll_fds[i].fd << std::endl;        
+                    int clientSocket = accept(poll_fds[i].fd, (struct sockaddr*)&clientAddress, &clientAddressLength);
+                    if (clientSocket < 0)
+                    {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+                            continue;
+                        Log::error("Failed to accept incoming connection ");
+                        continue;
                     }
+                std::cout << "New client connected! FD:" << clientSocket << std::endl;
+                fcntl(clientSocket, F_SETFL, O_NONBLOCK);
+                pollfd  client_fd;
+                client_fd.fd = clientSocket;
+                client_fd.events = POLLIN;
+                poll_fds.push_back(client_fd);
                 }
+                else
+                    handleClientRequests(poll_fds, i);
             }
-
-        } catch (std::exception& e) {
-            Log::error("Failed to set up server on port : " + servers[i].port);
         }
     }
-
-    for (size_t i = 0; i < sockets.size(); ++i) {
+    for (size_t i = 0; i < sockets.size(); ++i)
         delete sockets[i];
-    }
 }
