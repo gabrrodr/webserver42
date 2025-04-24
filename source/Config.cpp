@@ -1,5 +1,4 @@
 #include "../include/Config.hpp"
-#include <string>
 #include "Utils.cpp"
 
 
@@ -217,44 +216,6 @@ void    setupServerSockets(const std::vector<ServerConfig>& servers) {
     }
 }*/
 
-// utils
-// checks path
-// might change to another solution later since this one is kind of ugly looking
-static bool	endsWith(std::string path, std::string find)
-{
-	if (path.size() < find.size())
-		return (false);
-	return(path.compare(path.size() - find.size(), find.size(), find) == 0);
-}
-// utils
-// correctly transforms the Content Length to the expected format
-template <typename T>
-static std::string  toString(T value)
-{
-    std::stringstream   stream;
-    stream << value;
-    return (stream.str());
-}
-
-static void sendFullResponse(int fd, const std::string &response)
-{
-    size_t  totalSent = 0;
-    size_t  responseLength = response.length();
-
-    while (totalSent < responseLength)
-    {
-        ssize_t sent = send(fd, response.c_str() + totalSent, responseLength - totalSent, 0);
-        if (sent < 0)
-        {
-            Log::error("Failed to send full response.");
-            break;
-        }
-        totalSent += sent;
-    }
-    if (totalSent < responseLength)
-        Log::error("Response not fully send. Sent: " + toString(totalSent) + " of " + toString(responseLength));
-}
-
 void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
 
     char buffer[4096];
@@ -268,77 +229,8 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
         --i;
         return;
     }
-
     buffer[bytesReceived] = '\0';
-    std::string request(buffer);
-    std::cout << "buffer:\n_" << buffer << "_\n";
-    std::cout << "Received request:\n_" << request << "_\n";
-
-    std::string	response;
-    std::stringstream ss(buffer);
-    std::string method, uri, version, path, content;
-    std::string contentLength = ss.str();
-
-    ss >> method >> uri >> version;
-    std::cout << "Method: " << method << ", URI: " << uri << ", Version: " << version << "\n\n";
-   	path = "./www" + uri;
-	if (uri == "/")
-		path = "./www/index.html";
-    std::ifstream   file(path.c_str());
-    std::ostringstream  body;
-    if (!file)
-	{
-		// this should be our config error_file however this function isn't a ServerConfig member function
-		// so i'll see that later
-		std::cout << "no such file: " << path << '\n';
-		path = "./www/404.html";
-		std::ifstream errorFile(path.c_str());
-		if (errorFile)
-		{
-        	body << errorFile.rdbuf();
-        	content = body.str();
-        	response += "HTTP/1.1 404 Not Found\r\n";
-        	response += "Content-Type: text/html\r\n";
-        	response += "Content-Length: ";
-			response += toString(content.length());
-            response += "\r\nConnection: close\r\n\r\n";
-			response += "\r\n\r\n";
-        	response += content;
-		}
-		else
-		{
-			std::cerr << "404.html not found or could not be opened.\n";
-			response += "HTTP/1.1 500 Internal Server Error\r\n";
-            response += "Connection: close\r\n\r\n";
-		}
-	}
-    else
-    {
-        body << file.rdbuf();
-        content = body.str();
-        std::string contentType = "text/plain";
-		if (endsWith(path, ".html"))
-			contentType = "text/html";
-		else if (endsWith(path, ".css"))
-			contentType = "text/css";
-		else if (endsWith(path, ".js"))
-			contentType = "application/javascript";
-		else if (endsWith(path, ".png"))
-			contentType = "image/png";
-		else if (endsWith(path, ".jpg") || endsWith(path, ".jpeg"))
-			contentType = "image/jpeg";
-        else
-            Log::error("Unknown type: " + path + '\n'); // added to see what the tester might send through here
-		response += "HTTP/1.1 200 OK\r\n";
-		response += "Content-Type: ";
-		response += contentType;
-		response += "\r\nContent-Length: ";
-		response += toString(content.length());
-		response += "\r\nConnection: close\r\n\r\n";
-		response += content;
-    }
-    sendFullResponse(fd, response);
-    //send(fd, response.c_str(), response.length(), 0);// void sendFullResponse(int fd, const std::string& response)
+    Request requestHandler(buffer, fd);
     close(fd);
     poll_fds.erase(poll_fds.begin() + i);
     --i;
