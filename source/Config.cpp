@@ -111,6 +111,12 @@ std::vector<int>    ConfigParser::parsePorts(const std::string &line)
     return (ports);
 }
 
+bool    isPartofLocation(std::string &line)
+{
+    if (line.find("root ") == 0 || line.find("index ") == 0 || line.find("methods ") == 0 || line.find("upload_dir ") == 0)
+        return (true);
+    return (false);
+}
 ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line)
 {
     ServerConfig    server;
@@ -133,6 +139,8 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
             server.error_page = line.substr(11);
         else if (line.find("client_max_body_size ") == 0)
             server.client_max_body_size = parseSize(line.substr(22));
+        else if (isPartofLocation(line))
+            parseLocation(file);
         else if (line.find("location ") == 0)
         {
             std::string locationPath = line.substr(9);
@@ -184,6 +192,7 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
         }
     }
     std::cout << "Location parsed!" << std::endl;
+    std::cout << "Root: " << location.root << std::endl;
     std::cout << "Index: " << location.index << std::endl;
     std::cout << "Upload Dir: " << location.upload_dir << std::endl;
     return location;
