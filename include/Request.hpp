@@ -14,7 +14,10 @@ class Request
 		void	handleRequest();
 		void	setErrorResponse(int error);
 		void	getRequest();
-		void	setContentType(std::string &path);
+		void	cgiRequest();
+		void	setPath();
+		void	setContentType();
+		std::string	getQueryString(const std::string &uri);
 		void	setHeader();
 		~Request();
 
@@ -27,6 +30,7 @@ class Request
 		std::string	_contentType;
 		std::string	_header;
 		std::string	_content;
+		std::string	_path;
 };
 
 #endif
