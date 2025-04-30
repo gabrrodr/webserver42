@@ -38,6 +38,7 @@ clean:
 
 fclean: clean
 	@rm -rf ${NAME}
+	@rm -f upload/upload
 	@echo "${RED}${NAME} deleted${END}"
 
 re: fclean all

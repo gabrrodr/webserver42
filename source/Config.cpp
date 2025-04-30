@@ -229,17 +229,23 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
 
     char buffer[4096];
     int fd = poll_fds[i].fd;
-    int bytesReceived = recv(fd, buffer, sizeof(buffer) - 1, 0);
+    std::string fullRequest;
 
-    if (bytesReceived <= 0) {
-        std::cout << "Client disconnected or error on FD: " << fd << std::endl;
-        close(fd);
-        poll_fds.erase(poll_fds.begin() + i);
-        --i;
-        return;
+    while (true) {
+        int bytesReceived = recv(fd, buffer, sizeof(buffer) - 1, 0);
+        if (bytesReceived <= 0) {
+            std::cout << "Client disconnected or error on FD: " << fd << std::endl;
+            close(fd);
+            poll_fds.erase(poll_fds.begin() + i);
+            --i;
+            return;
+        }
+        buffer[bytesReceived] = '\0';
+        fullRequest += buffer;
+        if (fullRequest.find("\r\n\r\n") != std::string::npos)
+            break;
     }
-    buffer[bytesReceived] = '\0';
-    Request requestHandler(buffer, fd);
+    Request requestHandler(fullRequest, fd);
     close(fd);
     poll_fds.erase(poll_fds.begin() + i);
     --i;

@@ -39,7 +39,7 @@ class   ConfigParser {
         std::vector<ServerConfig>   parse();
 
         bool    isLocation(const std::string& line);
-        void    trim(std::string& str);
+        static void    trim(std::string& str);
         std::vector<std::string>    split(const std::string& str, char delimiter);
         size_t  parseSize(const std::string& str);
         //maybe instead of server use location, cleaner

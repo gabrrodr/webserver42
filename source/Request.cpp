@@ -1,16 +1,81 @@
 
 #include "../include/Request.hpp"
+#include "../include/Config.hpp"
 
-Request::Request(char *buffer, int fd)
+//this shows the request line parsed.
+Request::Request(const std::string& fullRequest, int fd)
 {
-	std::stringstream	ss(buffer);
+	std::stringstream	ss(fullRequest);
 
 	ss >> _method >> _uri >> _protocol;
-	_fd = fd;
-	std::cout << "buffer: " << buffer << '\n';
     std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
+	parseHeaders(ss);
+	size_t bodyStart = fullRequest.find("\r\n\r\n");
+	if (bodyStart != std::string::npos)
+	{
+		_body = fullRequest.substr(bodyStart + 4);
+		std::cout << "Body: " << _body << '\n';
+	}
+	else
+	{
+		std::cerr << "No body found in request.\n";
+	}
+
+	_fd = fd;
+	//std::cout << "buffer: " << buffer << '\n';
 
 	handleRequest();
+}
+
+//trim content length so i only save the number
+int	trimContentLength(std::string &str)
+{
+	size_t pos = str.find(":");
+	if (pos != std::string::npos)
+	{
+		str.erase(0, pos + 1);
+	}
+	ConfigParser::trim(str);
+	return (atoi(str.c_str()));
+}
+
+//trim content-type so i only save the type
+
+std::string	trimContentType(std::string &str)
+{
+	size_t pos = str.find(":");
+	if (pos != std::string::npos)
+	{
+		str.erase(0, pos + 1);
+	}
+	ConfigParser::trim(str);
+	return (str);
+}
+
+//headers- content length and content type
+void	Request::parseHeaders(std::stringstream &ss) {
+	std::string line;
+
+	while (std::getline(ss, line) && line != "\r")
+	{
+		if (!line.empty() && line[line.length() - 1] == '\r')
+			line.erase(line.length() - 1);
+
+		if (line.find("Content-Length:") == 0)
+		{
+			std::string contentLength = line.substr(15);
+			_contentLength = trimContentLength(contentLength);
+			std::cout << "Content-Length: " << _contentLength << '\n';
+		}
+		else if (line.find("Content-Type:") == 0)
+		{
+			std::string contentType = line.substr(13);
+			_contentType = trimContentType(contentType);
+			std::cout << "Content-Type: " << _contentType << '\n';
+		}
+		else
+			std::cout << "Header: " << line << '\n';
+	}
 }
 
 Request::~Request() {}
@@ -54,6 +119,34 @@ void	Request::handleRequest()
 {
 	if (_method == "GET")
 		getRequest();
+	else if (_method == "POST") 
+		postRequest();
+}
+
+void	Request::postRequest() {
+	std::string path = "./upload" + _uri;
+	if (_uri == "/")
+		path = "./upload/data.txt";
+	//second parameter is because if it exists you should be appending
+	std::ofstream file(path.c_str(), std::ios::app);
+	if (!file.is_open())
+	{
+		Log::error("Failed to open file for writing.");
+		setErrorResponse(500);
+	}
+	else {
+		file << _body;
+		file.close();
+		std::cout << "File written successfully.\n";
+		_header += "HTTP/1.1 200 OK\r\n";
+		_header += "Content-Type: text/plain\r\n";
+		_header += "Content-Length: 0\r\n";
+		_header += "Connection: close\r\n\r\n";
+		sendFullResponse(_fd, _header);
+		std::cout << "Response sent successfully.\n";
+	}
+
+	
 }
 
 void	Request::getRequest()
@@ -78,6 +171,7 @@ void	Request::getRequest()
 	}
 	sendFullResponse(_fd, _response);
 }
+
 
 void	Request::setContentType(std::string &path)
 {
