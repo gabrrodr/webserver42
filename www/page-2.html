@@ -16,9 +16,26 @@
 				fetch('./include/navbar.html')
 				.then(res => res.text())
 				.then(data => { document.getElementById('navbar').innerHTML = data; });
+
+				function sendMessage() {
+					const msg = document.getElementById("msgBox").value;
+
+					fetch("/upload", {
+						method: "POST",
+						body: msg
+					})
+					.then(() => {
+						document.getElementById("display").innerText = msg;
+					});
+				}
+			</script>
+
 			</script>
 			<div id="content">
 				<h1>POST METHOD TEST</h1>
+				<textarea id="msgBox" placeholder="Type your message to us!"></textarea>
+				<button onclick="sendMessage()">Post</button>
+				<div id="display" class="message-output"></div>
 			</div>
 		</div>
 	</body>
