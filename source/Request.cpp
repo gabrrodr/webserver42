@@ -6,7 +6,6 @@
 Request::Request(const std::string& fullRequest, int fd)
 {
 	std::stringstream	ss(fullRequest);
-
 	ss >> _method >> _uri >> _protocol;
     std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
 	parseHeaders(ss);
@@ -20,11 +19,11 @@ Request::Request(const std::string& fullRequest, int fd)
 	{
 		std::cerr << "No body found in request.\n";
 	}
-
 	_fd = fd;
 	//std::cout << "buffer: " << buffer << '\n';
-
-	handleRequest();
+  handleRequest();
+	setPath();
+	
 }
 
 //trim content length so i only save the number
@@ -115,9 +114,31 @@ static bool	endsWith(std::string path, std::string find)
 	return(path.compare(path.size() - find.size(), find.size(), find) == 0);
 }
 
+static bool	isCGIRequest(std::string &uri)
+{
+	return (endsWith(uri, ".cgi") || endsWith(uri, "/cgi-bin/"));
+}
+
+//	part of the string that comes after the ?
+//	ex: GET /script.cgi?name=Gabi&age=25 HTTP/1.1
+//	
+std::string	Request::getQueryString(const std::string &uri)
+{
+	std::string	queryString;
+	size_t	pos = uri.find('?');
+	if (pos != std::string::npos)
+	{
+		queryString = uri.substr(pos + 1);
+		_uri = uri.substr(0, pos);
+	}
+	return (queryString);
+}
+
 void	Request::handleRequest()
 {
-	if (_method == "GET")
+	if (isCGIRequest(_uri))
+		cgiRequest();
+	else if (_method == "GET")
 		getRequest();
 	else if (_method == "POST") 
 		postRequest();
@@ -149,23 +170,83 @@ void	Request::postRequest() {
 	
 }
 
+void	Request::cgiRequest()
+{
+	std::string	queryString = getQueryString(_uri);
+	setContentType();
+
+	char	*env[] = {
+		const_cast<char *>(("REQUEST_METHOD=" + _method).c_str()),
+		const_cast<char *>(("QUERY_STRING=" + getQueryString(_uri)).c_str()),
+		const_cast<char *>(("CONTENT_TYPE=" + _contentType).c_str()),
+		const_cast<char *>(("CONTENT_LENGTH=" + toString(_content.length())).c_str()),
+		NULL
+	};
+	
+	int	pipefd[2];
+	if (pipe(pipefd) == -1)
+	{
+		Log::error("Failed to create pipe for CGI.");
+		setErrorResponse(500);
+		return ;
+	}
+
+	pid_t	pid = fork();
+	if (pid == 0)// child process aka CGI script
+	{
+		close(pipefd[0]); // close read end
+		dup2(pipefd[1], STDOUT_FILENO);
+		close(pipefd[1]);
+
+		char	*args[] = {
+			const_cast<char *>(_path.c_str()),
+			NULL
+		};
+		execve(_path.c_str(), args, env);
+		exit(1);
+	}
+	else if (pid > 0)// parent process
+	{
+		close(pipefd[1]);// close write end
+		char	buffer[1024];
+		std::ostringstream	responseStream;
+
+		ssize_t	bytesRead;
+		while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer))) > 0)
+		{
+			responseStream.write(buffer, bytesRead);
+		}
+		close(pipefd[0]);// close read end
+		_response = responseStream.str();
+	}
+	else
+	{
+		Log::error("Failed to fork CGI.");
+		setErrorResponse(500);
+	}
+	sendFullResponse(_fd, _response);
+	// init the requiered CGI ENV variables based on the HTTP request
+	//
+	// execute the script with fork()
+	//
+	// redirect the stdin and stdout to handle input and output between server
+	// and the script
+	//
+	// read the script's output and send it as the HTTP response to the client
+}
+
 void	Request::getRequest()
 {
-	std::string	path;
-
-   	path = "./www" + _uri;
-	if (_uri == "/")
-		path = "./www/index.html";
-	
-	std::ifstream	file(path.c_str());
+	std::ifstream	file(_path.c_str());
 	std::ostringstream	body;
+	
 	if (!file)
 		setErrorResponse(404);
 	else
 	{
 		body << file.rdbuf();
 		_content = body.str();
-		setContentType(path);
+		setContentType();
 		setHeader();
 		_response += _header + _content;
 	}
@@ -173,20 +254,27 @@ void	Request::getRequest()
 }
 
 
-void	Request::setContentType(std::string &path)
+void	Request::setPath()
 {
-	if (endsWith(path, ".html"))
+	_path = "./www" + _uri;
+	if (_uri == "/")
+		_path = "./www/index.html";
+}
+
+void	Request::setContentType()
+{
+	if (endsWith(_path, ".html"))
 		_contentType = "text/html";
-	else if (endsWith(path, ".css"))
+	else if (endsWith(_path, ".css"))
 		_contentType = "text/css";
-	else if (endsWith(path, ".js"))
+	else if (endsWith(_path, ".js"))
 		_contentType = "application/javascript";
-	else if (endsWith(path, ".png"))
+	else if (endsWith(_path, ".png"))
 		_contentType = "image/png";
-	else if (endsWith(path, ".jpg") || endsWith(path, ".jpeg"))
+	else if (endsWith(_path, ".jpg") || endsWith(_path, ".jpeg"))
 		_contentType = "image/jpeg";
     else
-        Log::error("Unknown type: " + path + '\n'); // added to see what the tester might send through here
+        Log::error("Unknown type: " + _path + '\n'); // added to see what the tester might send through here
 }
 
 
@@ -215,6 +303,11 @@ void	Request::setErrorResponse(int error)
 			_response += "HTTP/1.1 500 Internal Server Error\r\n";
             _response += "Connection: close\r\n\r\n";
 		}
+	}
+	if (error == 500)
+	{
+		_response += "HTTP/1.1 500 Internal Server Error\r\n";
+        _response += "Connection: close\r\n\r\n";
 	}
 }
 
