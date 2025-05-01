@@ -16,15 +16,12 @@ class Request
 		void	handleRequest();
 		void	setErrorResponse(int error);
 		void	getRequest();
-<<<<<<< post
 		void	postRequest();
 		void	setContentType(std::string &path);
-=======
 		void	cgiRequest();
 		void	setPath();
 		void	setContentType();
 		std::string	getQueryString(const std::string &uri);
->>>>>>> main
 		void	setHeader();
 		~Request();
 

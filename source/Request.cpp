@@ -21,8 +21,8 @@ Request::Request(const std::string& fullRequest, int fd)
 	}
 	_fd = fd;
 	//std::cout << "buffer: " << buffer << '\n';
-  handleRequest();
 	setPath();
+  	handleRequest();
 	
 }
 
