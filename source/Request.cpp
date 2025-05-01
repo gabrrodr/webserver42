@@ -13,7 +13,7 @@ Request::Request(const std::string& fullRequest, int fd)
 	if (bodyStart != std::string::npos)
 	{
 		_body = fullRequest.substr(bodyStart + 4);
-		std::cout << "Body: " << _body << '\n';
+		std::cout << "Body: " << _body << std::hex << std::endl;
 	}
 	else
 	{
@@ -64,13 +64,14 @@ void	Request::parseHeaders(std::stringstream &ss) {
 		{
 			std::string contentLength = line.substr(15);
 			_contentLength = trimContentLength(contentLength);
-			std::cout << "Content-Length: " << _contentLength << '\n';
+			//std::cout << "Content-Length: " << _contentLength << '\n';
 		}
 		else if (line.find("Content-Type:") == 0)
 		{
+			//setContentType();
 			std::string contentType = line.substr(13);
 			_contentType = trimContentType(contentType);
-			std::cout << "Content-Type: " << _contentType << '\n';
+			//std::cout << "Content-Type: " << _contentType << '\n';
 		}
 		else
 			std::cout << "Header: " << line << '\n';
@@ -104,6 +105,11 @@ static void sendFullResponse(int fd, const std::string &response)
     }
     if (totalSent < responseLength)
         Log::error("Response not fully send. Sent: " + toString(totalSent) + " of " + toString(responseLength));
+	else {
+		size_t headerEnd = response.find("\r\n\r\n");
+		if (headerEnd != std::string::npos)
+		std::cout << response.substr(0, headerEnd + 4) << "\n[Body omitted]\n";
+	}
 }
 
 // utils
@@ -136,6 +142,9 @@ std::string	Request::getQueryString(const std::string &uri)
 
 void	Request::handleRequest()
 {
+	//_response.clear();
+	//_header.clear();
+	//_content.clear();
 	if (isCGIRequest(_uri))
 		cgiRequest();
 	else if (_method == "GET")
@@ -145,11 +154,11 @@ void	Request::handleRequest()
 }
 
 void	Request::postRequest() {
-	std::string path = "./upload" + _uri;
+	/*std::string path = "./upload" + _uri;
 	if (_uri == "/")
-		path = "./upload/data.txt";
+		path = "./upload/data.txt";*/
 	//second parameter is because if it exists you should be appending
-	std::ofstream file(path.c_str(), std::ios::app);
+	std::ofstream file(_path.c_str(), std::ios::app);
 	if (!file.is_open())
 	{
 		Log::error("Failed to open file for writing.");
@@ -159,15 +168,15 @@ void	Request::postRequest() {
 		file << _body;
 		file.close();
 		std::cout << "File written successfully.\n";
+		//setContentType();
+		//setHeader();
 		_header += "HTTP/1.1 200 OK\r\n";
-		_header += "Content-Type: text/plain\r\n";
+		_header += "Content-Type: " + _contentType + "\r\n";
 		_header += "Content-Length: 0\r\n";
 		_header += "Connection: close\r\n\r\n";
 		sendFullResponse(_fd, _header);
 		std::cout << "Response sent successfully.\n";
 	}
-
-	
 }
 
 void	Request::cgiRequest()
@@ -256,9 +265,17 @@ void	Request::getRequest()
 
 void	Request::setPath()
 {
-	_path = "./www" + _uri;
-	if (_uri == "/")
-		_path = "./www/index.html";
+	if (_method == "GET") {
+		_path = "./www" + _uri;
+		if (_uri == "/")
+			_path = "./www/index.html";
+	}
+	else if (_method == "POST")
+	{
+		_path = "./upload" + _uri;
+		if (_uri == "/")
+			_path = "./upload/data.txt";
+	}
 }
 
 void	Request::setContentType()

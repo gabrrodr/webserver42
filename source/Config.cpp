@@ -241,7 +241,7 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
             return;
         }
         buffer[bytesReceived] = '\0';
-        fullRequest += buffer;
+        fullRequest.append(buffer, bytesReceived);
         if (fullRequest.find("\r\n\r\n") != std::string::npos)
             break;
     }
