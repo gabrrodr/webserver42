@@ -27,13 +27,13 @@ void    generate_file() {
     write_line(file, "\tlisten 8080");
     write_line(file, "\tserver_name localhost");
     write_line(file, "\tlocation / {");
-    write_line(file, "\t\troot web/");
+    write_line(file, "\t\troot www/");
     write_line(file, "\t\tindex index.html");
     write_line(file, "\t}");
-    write_line(file, "\tlocation /onlyget {");
+    write_line(file, "\tlocation / {");
     write_line(file, "\t\tmethods GET");
     write_line(file, "\t}");
-    write_line(file, "\tlocation /onlypost {");
+    write_line(file, "\tlocation / {");
     write_line(file, "\t\tmethods POST");
     write_line(file, "\t}");
     write_line(file, "}");
