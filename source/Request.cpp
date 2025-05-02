@@ -8,7 +8,7 @@ Request::Request(const std::string& fullRequest, int fd)
 	std::stringstream	ss(fullRequest);
 	ss >> _method >> _uri >> _protocol;
     std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
-	parseHeaders(ss);
+	setPath();
 	size_t bodyStart = fullRequest.find("\r\n\r\n");
 	if (bodyStart != std::string::npos)
 	{
@@ -20,63 +20,9 @@ Request::Request(const std::string& fullRequest, int fd)
 		std::cerr << "No body found in request.\n";
 	}
 	_fd = fd;
-	//std::cout << "buffer: " << buffer << '\n';
-	setPath();
   	handleRequest();
-	
 }
 
-//trim content length so i only save the number
-int	trimContentLength(std::string &str)
-{
-	size_t pos = str.find(":");
-	if (pos != std::string::npos)
-	{
-		str.erase(0, pos + 1);
-	}
-	ConfigParser::trim(str);
-	return (atoi(str.c_str()));
-}
-
-//trim content-type so i only save the type
-
-std::string	trimContentType(std::string &str)
-{
-	size_t pos = str.find(":");
-	if (pos != std::string::npos)
-	{
-		str.erase(0, pos + 1);
-	}
-	ConfigParser::trim(str);
-	return (str);
-}
-
-//headers- content length and content type
-void	Request::parseHeaders(std::stringstream &ss) {
-	std::string line;
-
-	while (std::getline(ss, line) && line != "\r")
-	{
-		if (!line.empty() && line[line.length() - 1] == '\r')
-			line.erase(line.length() - 1);
-
-		if (line.find("Content-Length:") == 0)
-		{
-			std::string contentLength = line.substr(15);
-			_contentLength = trimContentLength(contentLength);
-			//std::cout << "Content-Length: " << _contentLength << '\n';
-		}
-		else if (line.find("Content-Type:") == 0)
-		{
-			//setContentType();
-			std::string contentType = line.substr(13);
-			_contentType = trimContentType(contentType);
-			//std::cout << "Content-Type: " << _contentType << '\n';
-		}
-		else
-			std::cout << "Header: " << line << '\n';
-	}
-}
 
 Request::~Request() {}
 
@@ -154,9 +100,6 @@ void	Request::handleRequest()
 }
 
 void	Request::postRequest() {
-	/*std::string path = "./upload" + _uri;
-	if (_uri == "/")
-		path = "./upload/data.txt";*/
 	//second parameter is because if it exists you should be appending
 	std::ofstream file(_path.c_str(), std::ios::app);
 	if (!file.is_open())
@@ -168,12 +111,9 @@ void	Request::postRequest() {
 		file << _body;
 		file.close();
 		std::cout << "File written successfully.\n";
-		//setContentType();
-		//setHeader();
-		_header += "HTTP/1.1 200 OK\r\n";
-		_header += "Content-Type: " + _contentType + "\r\n";
-		_header += "Content-Length: 0\r\n";
-		_header += "Connection: close\r\n\r\n";
+		_contentLength = _body.length();
+		setContentType();
+		setHeader();
 		sendFullResponse(_fd, _header);
 		std::cout << "Response sent successfully.\n";
 	}
@@ -255,6 +195,7 @@ void	Request::getRequest()
 	{
 		body << file.rdbuf();
 		_content = body.str();
+		_contentLength = _content.length();
 		setContentType();
 		setHeader();
 		_response += _header + _content;
@@ -272,9 +213,10 @@ void	Request::setPath()
 	}
 	else if (_method == "POST")
 	{
-		_path = "./upload" + _uri;
+		_path = "./upload" + _uri + ".txt";
 		if (_uri == "/")
 			_path = "./upload/data.txt";
+
 	}
 }
 
@@ -282,6 +224,8 @@ void	Request::setContentType()
 {
 	if (endsWith(_path, ".html"))
 		_contentType = "text/html";
+	else if (endsWith(_path, ".txt"))
+		_contentType = "text/plain";
 	else if (endsWith(_path, ".css"))
 		_contentType = "text/css";
 	else if (endsWith(_path, ".js"))
@@ -333,6 +277,6 @@ void	Request::setHeader()
 {
 	_header += "HTTP/1.1 200 OK\r\n";
 	_header += "Content-Type: " + _contentType + "\r\n";
-	_header += "Content-Length: " + toString(_content.length()) + "\r\n";
+	_header += "Content-Length: " + toString(_contentLength) + "\r\n";
 	_header += "Connection: close\r\n\r\n";
 }
