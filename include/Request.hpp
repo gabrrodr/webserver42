@@ -22,7 +22,7 @@ class Request
 		void	setPath();
 		void	setContentType();
 		std::string	getQueryString(const std::string &uri);
-		void	setHeader();
+		void	setHeader(int code);
 		~Request();
 
 	private:
