@@ -101,6 +101,9 @@ void	Request::handleRequest()
 
 void	Request::postRequest() {
 	//second parameter is because if it exists you should be appending
+	std::ifstream check(_path.c_str());
+	bool fileExists = check.is_open();
+	check.close();
 	std::ofstream file(_path.c_str(), std::ios::app);
 	if (!file.is_open())
 	{
@@ -113,7 +116,10 @@ void	Request::postRequest() {
 		std::cout << "File written successfully.\n";
 		_contentLength = _body.length();
 		setContentType();
-		setHeader();
+		if (fileExists) {
+			setHeader(200); }
+		else {
+			setHeader(201); }
 		sendFullResponse(_fd, _header);
 		std::cout << "Response sent successfully.\n";
 	}
@@ -197,7 +203,7 @@ void	Request::getRequest()
 		_content = body.str();
 		_contentLength = _content.length();
 		setContentType();
-		setHeader();
+		setHeader(200);
 		_response += _header + _content;
 	}
 	sendFullResponse(_fd, _response);
@@ -273,9 +279,14 @@ void	Request::setErrorResponse(int error)
 }
 
 
-void	Request::setHeader()
+void	Request::setHeader(int code)
 {
-	_header += "HTTP/1.1 200 OK\r\n";
+	if (code == 200) {
+		_header += "HTTP/1.1 200 OK\r\n";
+	}
+	else if (code == 201) {
+		_header += "HHTP/1.1 201 Created\r\n";
+	}
 	_header += "Content-Type: " + _contentType + "\r\n";
 	_header += "Content-Length: " + toString(_contentLength) + "\r\n";
 	_header += "Connection: close\r\n\r\n";
