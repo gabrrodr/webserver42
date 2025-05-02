@@ -22,6 +22,9 @@
 
 					fetch("/upload", {
 						method: "POST",
+						headers: {
+							"Content-Type": "text/plain"
+						},
 						body: msg
 					})
 					.then(() => {
