@@ -17,6 +17,7 @@ class Request
 		void	setErrorResponse(int error);
 		void	getRequest();
 		void	postRequest();
+		void	deleteRequest();
 		void	setContentType(std::string &path);
 		void	cgiRequest();
 		void	setPath();
