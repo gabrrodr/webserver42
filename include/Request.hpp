@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <cstdio>
 #include "Log.hpp"
 #include "Config.hpp"
 
@@ -17,6 +18,7 @@ class Request
 		void	setErrorResponse(int error);
 		void	getRequest();
 		void	postRequest();
+		void	deleteRequest();
 		void	setContentType(std::string &path);
 		void	cgiRequest();
 		void	setPath();
