@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <cstdio>
 #include "Log.hpp"
 #include "Config.hpp"
 

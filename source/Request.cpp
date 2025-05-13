@@ -10,7 +10,7 @@ Request::Request(const std::string& fullRequest, int fd)
     std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
 	setPath();
 	size_t bodyStart = fullRequest.find("\r\n\r\n");
-	if (bodyStart != std::string::npos && _method != "DELETE")
+	if (bodyStart != std::string::npos /*&& _method != "DELETE"*/)
 	{
 		_body = fullRequest.substr(bodyStart + 4);
 		std::cout << "Body: " << _body << std::hex << std::endl;
@@ -98,7 +98,7 @@ void	Request::handleRequest()
 	else if (_method == "POST") 
 		postRequest();
 	else if (_method == "DELETE") {
-
+		deleteRequest();
 	}
 }
 
@@ -258,9 +258,9 @@ void	Request::setPath()
 	}
 	else if (_method == "DELETE")
 	{
-		_path = "./upload" + _uri;
-		if (_uri == "/")
-			_path = "./upload/data.txt";
+		_path = "." + _uri;
+		/*if (_uri == "/")
+			_path = "./upload/data.txt";*/
 	}
 }
 
