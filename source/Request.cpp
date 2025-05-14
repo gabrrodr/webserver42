@@ -1,10 +1,11 @@
 
 #include "../include/Request.hpp"
-#include "../include/Config.hpp"
 
 //this shows the request line parsed.
-Request::Request(const std::string& fullRequest, int fd)
+Request::Request(const std::string& fullRequest, int fd, const std::vector<ServerConfig> &servers)
 {
+	std::cout << "\n======================================\nFULL REQUEST\n" << fullRequest << "======================================\n";
+	_fullRequest = fullRequest;
 	std::stringstream	ss(fullRequest);
 	ss >> _method >> _uri >> _protocol;
     std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
@@ -20,19 +21,43 @@ Request::Request(const std::string& fullRequest, int fd)
 		std::cout << "No body found in request.\n";
 	}
 	_fd = fd;
+	setConfig(servers);
+	if (DEBUG)
+	{
+		std::cout	<< "\n==========\nServerConfig:\n"
+					<< "\nserver_name : " << _config.server_name
+					<< "\nerror_page : " << _config.error_page
+					<< "\nclient_max_body_size : " << _config.client_max_body_size << '\n'
+					<< "ports : ";
+		for (size_t i = 0; i < _config.port.size(); i++)
+			std::cout << std::dec << _config.port[i] << ' ';
+		std::cout << '\n';
+		std::cout << "locations:\n";
+		for (std::map<std::string, Location>::iterator it = _config.locations.begin(); it != _config.locations.end(); ++it)
+		{
+			std::cout << "location : " << it->first
+					  << "\nroot  : " << it->second.root
+					  << "\nindex : " << it->second.index
+					  << "\nupload_dir : " << it->second.upload_dir // upload_dir doesn't have anything even when it should it seems
+					  << "\nmethods : "
+					  << "\ncgi_path : ";
+			for (std::vector<std::string>::iterator itCGIP = it->second.cgi_path.begin(); itCGIP != it->second.cgi_path.end(); ++itCGIP)
+				std::cout << *itCGIP << ' ';
+			std::cout << "\ncgi_extension : ";
+			for (std::vector<std::string>::iterator itCGIE = it->second.cgi_extension.begin(); itCGIE != it->second.cgi_extension.end(); ++itCGIE)
+				std::cout << *itCGIE << ' ';
+			std::cout << '\n';
+			for (std::vector<std::string>::iterator itM = it->second.methods.begin(); itM != it->second.methods.end(); ++itM)
+				std::cout << *itM << ' ';
+			std::cout << '\n';
+		}
+	}
   	handleRequest();
 }
 
 
 Request::~Request() {}
 
-template <typename T>
-static std::string  toString(T value)
-{
-    std::stringstream   stream;
-    stream << value;
-    return (stream.str());
-}
 
 static void sendFullResponse(int fd, const std::string &response)
 {
@@ -54,7 +79,7 @@ static void sendFullResponse(int fd, const std::string &response)
 	else {
 		size_t headerEnd = response.find("\r\n\r\n");
 		if (headerEnd != std::string::npos)
-		std::cout << response.substr(0, headerEnd + 4) << "\n[Body omitted]\n";
+			std::cout << response.substr(0, headerEnd + 4) << "\n[Body omitted]\n";
 	}
 }
 
@@ -68,7 +93,7 @@ static bool	endsWith(std::string path, std::string find)
 
 static bool	isCGIRequest(std::string &uri)
 {
-	return (endsWith(uri, ".cgi") || endsWith(uri, "/cgi-bin/"));
+	return (uri.find("/cgi-bin") == 0);
 }
 
 //	part of the string that comes after the ?
@@ -108,6 +133,7 @@ void	Request::postRequest() {
 	bool fileExists = check.is_open();
 	check.close();
 	std::ofstream file(_path.c_str(), std::ios::app);
+	std::cout << "_path : " << _path << '\n';
 	if (!file.is_open())
 	{
 		Log::error("Failed to open file for writing.");
@@ -160,7 +186,11 @@ void 	Request::deleteRequest() {
 
 void	Request::cgiRequest()
 {
-	std::string	queryString = getQueryString(_uri);
+	std::cout << "\nCGI Request\nFull request:\n" << _fullRequest << '\n';
+	CGIRequest	cgiRequest(*this, _fullRequest, _fd);
+
+	cgiRequest.handleRequest();
+	/*std::string	queryString = getQueryString(_uri);
 	setContentType();
 
 	char	*env[] = {
@@ -220,7 +250,7 @@ void	Request::cgiRequest()
 	// redirect the stdin and stdout to handle input and output between server
 	// and the script
 	//
-	// read the script's output and send it as the HTTP response to the client
+	// read the script's output and send it as the HTTP response to the client*/
 }
 
 void	Request::getRequest()
@@ -329,3 +359,43 @@ void	Request::setHeader(int code)
 	_header += "Content-Length: " + toString(_contentLength) + "\r\n";
 	_header += "Connection: close\r\n\r\n";
 }
+
+void	Request::setConfig(const std::vector<ServerConfig> &servers)
+{
+	std::vector<ServerConfig>	svConf = servers;
+	size_t	hostPos = _fullRequest.find("Host:");
+	std::string	hostStr, host;
+	
+	if (hostPos != std::string::npos)
+	{
+		size_t lineEnd = _fullRequest.find("\r\n", hostPos);
+		hostStr = _fullRequest.substr(hostPos, lineEnd - hostPos);
+		std::cout << "hostStr : " << hostStr << '\n';
+		host = hostStr.substr(hostStr.size() - 4, hostStr.size());
+	}
+	
+	std::cout << "Host port: " << host << '\n';
+	for (size_t i = 0; i < svConf.size(); i++)
+	{
+		std::vector<int>	currPorts = svConf[i].port;
+		for (size_t j = 0; j < currPorts.size(); j++)
+		{
+			if (toString(currPorts[j]) == host)
+			{
+				_config = svConf[i];
+			}
+		}
+	}
+}
+
+const std::string	&Request::getMethod() const { return(_method); }
+
+const std::string	&Request::getUri() const { return(_uri); }
+
+const std::string	&Request::getProtocol() const { return(_protocol); }
+
+const std::string	&Request::getHeader() const { return(_header); }
+
+const std::string	&Request::getBody() const { return(_body); }
+
+ServerConfig	Request::getConfig() const { return(_config); }

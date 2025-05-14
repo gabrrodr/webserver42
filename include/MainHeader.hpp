@@ -5,8 +5,6 @@
 #include "ListeningSocket.hpp"
 #include "ConnectionSocket.hpp"
 #include "BindingSocket.hpp"
-#include "Log.hpp"
-#include "Config.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <cstring>

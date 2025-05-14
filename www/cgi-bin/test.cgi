@@ -1,5 +1,9 @@
 #!/bin/bash
 
-echo "Content-Type: text/html"
-echo ""
-echo "<html><body><h1>Hello from CGI!</h1></body></html>"
+echo "
+			<div id="content">
+				<img src="../assets/img/cat-1.jpeg" alt="cat-1">
+				<img src="../assets/img/cat-2.jpeg" alt="cat-2">
+				<img src="../assets/img/cat-3.jpeg" alt="cat-3">
+			</div>
+"
