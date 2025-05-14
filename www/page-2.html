@@ -4,7 +4,7 @@
 		<link rel="stylesheet" href="../css/main.css">
 		<link rel="stylesheet" href="../css/header.css">
 		<link rel="stylesheet" href="../css/navbar.css">
-		<title>Home</title>
+		<title>Post method</title>
 	</head>
 	<body>
 		<div id="header">
@@ -41,7 +41,13 @@
 				<textarea id="msgBox" placeholder="Type your message to us!"></textarea>
 				<button onclick="sendMessage()">Post</button>
 				<div id="display" class="message-output"></div>
-
+			</div>
+			<div>
+				<form action="/upload" method="POST" enctype="multipart/form-data">
+					<label for="file">File</label>
+					<input type="file" name="file" id="file">
+					<button>upload</button>
+				</form>
 			</div>
 		</div>
 	</body>

@@ -7,6 +7,8 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <cstdio>
+#include "Log.hpp"
 #include "Config.hpp"
 #include "CGIRequest.hpp"
 
@@ -21,6 +23,7 @@ class Request
 		void	setErrorResponse(int error);
 		void	getRequest();
 		void	postRequest();
+		void	deleteRequest();
 		void	setContentType(std::string &path);
 		void	cgiRequest();
 		void	setPath();

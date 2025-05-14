@@ -11,10 +11,14 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
     std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
 	setPath();
 	size_t bodyStart = fullRequest.find("\r\n\r\n");
-	if (bodyStart != std::string::npos)
+	if (bodyStart != std::string::npos /*&& _method != "DELETE"*/)
 	{
 		_body = fullRequest.substr(bodyStart + 4);
 		std::cout << "Body: " << _body << std::hex << std::endl;
+	}
+	else
+	{
+		std::cout << "No body found in request.\n";
 	}
 	_fd = fd;
 	setConfig(servers);
@@ -118,6 +122,9 @@ void	Request::handleRequest()
 		getRequest();
 	else if (_method == "POST") 
 		postRequest();
+	else if (_method == "DELETE") {
+		deleteRequest();
+	}
 }
 
 void	Request::postRequest() {
@@ -126,6 +133,7 @@ void	Request::postRequest() {
 	bool fileExists = check.is_open();
 	check.close();
 	std::ofstream file(_path.c_str(), std::ios::app);
+	std::cout << "_path : " << _path << '\n';
 	if (!file.is_open())
 	{
 		Log::error("Failed to open file for writing.");
@@ -144,6 +152,36 @@ void	Request::postRequest() {
 		sendFullResponse(_fd, _header);
 		std::cout << "Response sent successfully.\n";
 	}
+}
+
+void 	Request::deleteRequest() {
+	std::ifstream check(_path.c_str());
+	bool fileExists = check.is_open();
+	check.close();
+	if (!fileExists) {
+		Log::error("Failed to find file for deletion.");
+		setErrorResponse(404);
+		return;
+	}
+	std::ofstream file(_path.c_str());
+	if (!file.is_open()) {
+		Log::error("Failed to open file for deletion.");
+		setErrorResponse(500);
+		return;
+	} else {
+		_contentLength = 0;
+		file.close();
+		if (std::remove(_path.c_str())) {
+			Log::error("Failed to delete file.");
+			//setErrorResponse(204); --do the 204 No content one.
+			return;
+		}
+		setHeader(200);
+		sendFullResponse(_fd, _header);
+		std::cout << "Response sent successfully" << std::endl;
+	}
+	//check if the path exists 
+	//check if you can delete it
 }
 
 void	Request::cgiRequest()
@@ -247,7 +285,12 @@ void	Request::setPath()
 		_path = "./upload" + _uri + ".txt";
 		if (_uri == "/")
 			_path = "./upload/data.txt";
-
+	}
+	else if (_method == "DELETE")
+	{
+		_path = "." + _uri;
+		/*if (_uri == "/")
+			_path = "./upload/data.txt";*/
 	}
 }
 
