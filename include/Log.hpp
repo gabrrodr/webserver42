@@ -1,6 +1,7 @@
 #ifndef LOG_HPP
 #define LOG_HPP
-#include "MainHeader.hpp"
+
+#include <iostream>
 
 class Log {
     public:

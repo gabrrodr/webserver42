@@ -1,5 +1,7 @@
 #include <fstream>
 #include "../include/MainHeader.hpp"
+#include "../include/Log.hpp"
+#include "../include/Config.hpp"
 
 // Configurable launch- check
 // default config generator (--generate creates a default config file)

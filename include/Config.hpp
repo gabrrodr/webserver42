@@ -1,8 +1,6 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
-#include "MainHeader.hpp"
-#include "Request.hpp"
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -10,12 +8,18 @@
 #include <stdexcept>
 #include <vector>
 #include <fcntl.h>
+#include <map>
+#include "MainHeader.hpp"
+#include "Log.hpp"
 
 struct  Location {
     //can i initialize here, all empty = "", except methods
+    std::string url;
     std::string root;
     std::string index;
     std::string upload_dir;
+    std::vector<std::string>    cgi_path;
+    std::vector<std::string>    cgi_extension;
     std::vector<std::string>    methods;
 };
 
@@ -27,6 +31,9 @@ struct  ServerConfig {
     std::string error_page;
     std::map<std::string, Location> locations;
 };
+
+#include "Request.hpp"
+#include "Utils.hpp"
 
 class   ConfigParser {
     private:

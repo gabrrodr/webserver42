@@ -14,9 +14,11 @@ SRCS	=	$(addprefix $(SRC_DIR), main.cpp \
 									ListeningSocket.cpp \
 									ConnectionSocket.cpp \
 									Config.cpp \
-									Request.cpp)
+									Request.cpp \
+									CGIRequest.cpp \
+									Utils.cpp)
 OBJ		= $(patsubst $(SRC_DIR)%.cpp, $(OBJ_DIR)%.o, $(SRCS)) 
-FLAGS	= -Wall -Wextra -Werror -std=c++98 -g
+FLAGS	= -Wall -Wextra -Werror -std=c++98 -g #-fsanitize=address
 
 $(OBJ_DIR)%.o: $(SRC_DIR)%.cpp | $(OBJ_DIR)
 	c++ $(FLAGS) -c $< -o $@

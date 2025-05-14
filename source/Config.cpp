@@ -1,6 +1,4 @@
 #include "../include/Config.hpp"
-#include "Utils.cpp"
-
 
 ConfigParser::ConfigParser(const std::string& filename) : filename_(filename) {}
 
@@ -134,7 +132,12 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
         if (line.find("listen ") == 0) 
             server.port = parsePorts(line); 
         else if (line.find("server_name ") == 0)
+        {
             server.server_name = line.substr(12);
+            size_t  trailingSemiColon = server.server_name.find(';');
+            if (trailingSemiColon != std::string::npos)
+                server.server_name = server.server_name.substr(0, trailingSemiColon);
+        }
         else if (line.find("error_page ") == 0)
             server.error_page = line.substr(11);
         else if (line.find("client_max_body_size ") == 0)
@@ -152,6 +155,7 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
             }
             Location location = parseLocation(file);
             server.locations[locationPath] = location;
+            server.locations[locationPath].url = locationPath;
         }
         else
             throw std::runtime_error("Unknown directive (parse server): " + line);
@@ -170,6 +174,7 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
     Location    location;
     std::string line;
     std::cout << "Parsing location..." << std::endl;
+    std::cout << "parsing location lines\n";
     while (std::getline(file, line)) {
         trim(line);
         if (line == "}")
@@ -185,9 +190,24 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
             location.index = line.substr(6);
         else if (line.find("methods ") == 0)
             location.methods = split(line.substr(8), ' ');
-        else if (line.find("upload_dir ") == 0) {
-            location.upload_dir = line.substr(11);
-        } else if (!isLocation(line)) {
+        else if (line.find("upload_store ") == 0) {
+            location.upload_dir = line.substr(13);
+        }
+        else if (line.find("cgi_path ") == 0)
+        {
+            location.cgi_path = split(line.substr(9), ' ');
+            size_t  cgiTrailPos = location.cgi_path[location.cgi_path.size() - 1].find(';');
+            if (cgiTrailPos != std::string::npos)
+                location.cgi_path[location.cgi_path.size() - 1] = location.cgi_path[location.cgi_path.size() - 1].substr(0, cgiTrailPos);
+        }
+        else if (line.find("cgi_extension ") == 0)
+        {
+            location.cgi_extension = split(line.substr(14), ' ');
+            size_t  cgiTrailPos = location.cgi_extension[location.cgi_extension.size() - 1].find(';');
+            if (cgiTrailPos != std::string::npos)
+                location.cgi_extension[location.cgi_extension.size() - 1] = location.cgi_extension[location.cgi_extension.size() - 1].substr(0, cgiTrailPos);
+        }
+        else if (!isLocation(line)) {
            break;
         }
     }
@@ -225,7 +245,7 @@ void    setupServerSockets(const std::vector<ServerConfig>& servers) {
     }
 }*/
 
-void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
+void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i, const std::vector<ServerConfig> &servers) {
 
     char buffer[4096];
     int fd = poll_fds[i].fd;
@@ -245,7 +265,7 @@ void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i) {
         if (fullRequest.find("\r\n\r\n") != std::string::npos)
             break;
     }
-    Request requestHandler(fullRequest, fd);
+    Request requestHandler(fullRequest, fd, servers);
     close(fd);
     poll_fds.erase(poll_fds.begin() + i);
     --i;
@@ -319,7 +339,7 @@ void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
                 poll_fds.push_back(client_fd);
                 }
                 else
-                    handleClientRequests(poll_fds, i);
+                    handleClientRequests(poll_fds, i, servers);
             }
         }
     }
