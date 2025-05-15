@@ -6,17 +6,15 @@
 Request::Request(const std::string& fullRequest, int fd)
 {
 	std::stringstream	ss(fullRequest);
+	_fullRequest = fullRequest;
 	ss >> _method >> _uri >> _protocol;
     std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
 	setPath();
 	size_t bodyStart = fullRequest.find("\r\n\r\n");
-	if (bodyStart != std::string::npos /*&& _method != "DELETE"*/)
-	{
+	if (bodyStart != std::string::npos /*&& _method != "DELETE"*/) {
 		_body = fullRequest.substr(bodyStart + 4);
-		std::cout << "Body: " << _body << std::hex << std::endl;
-	}
-	else
-	{
+		std::cout << "Body: " << _body << /*std::hex <<*/std::endl;
+	} else {
 		std::cout << "No body found in request.\n";
 	}
 	_fd = fd;
@@ -95,11 +93,25 @@ void	Request::handleRequest()
 		cgiRequest();
 	else if (_method == "GET")
 		getRequest();
-	else if (_method == "POST") 
-		postRequest();
+	else if (_method == "POST") {
+		if (_uri == "/data")
+			handleFileUpload();
+		else
+			postRequest();
+	}
 	else if (_method == "DELETE") {
 		deleteRequest();
 	}
+}
+
+void	Request::handleFileUpload() {
+	size_t filenameStart = _body.find("filename=\"");
+	if (filenameStart == std::string::npos) {
+		Log::error
+	}
+	
+	
+
 }
 
 void	Request::postRequest() {
@@ -252,9 +264,10 @@ void	Request::setPath()
 	}
 	else if (_method == "POST")
 	{
-		_path = "./upload" + _uri + ".txt";
-		if (_uri == "/")
-			_path = "./upload/data.txt";
+		if (_uri == "/upload")
+			_path = "./upload" + _uri + ".txt";
+		if (_uri == "/data")
+			_path = "./upload/data";
 	}
 	else if (_method == "DELETE")
 	{

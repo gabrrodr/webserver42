@@ -18,6 +18,7 @@ class Request
 		void	setErrorResponse(int error);
 		void	getRequest();
 		void	postRequest();
+		void	handleFileUpload();
 		void	deleteRequest();
 		void	setContentType(std::string &path);
 		void	cgiRequest();
@@ -30,6 +31,7 @@ class Request
 	private:
 		int			_fd;
 		int			_contentLength;
+		std::string _fullRequest;
 		std::string	_response;
 		std::string	_method;
 		std::string	_uri;
