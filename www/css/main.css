@@ -19,6 +19,7 @@ body
 {
 	background-color: #fff;
 	margin: 5% auto;
+	min-height: 50%;
 	width: 80%;
 	padding: 2%;
 	border-radius: 15px;

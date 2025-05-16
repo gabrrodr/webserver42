@@ -302,7 +302,7 @@ void	CGIRequest::handleRequest()
 		dup2(_pipeChild[1], STDOUT_FILENO);
 		close(_pipeChild[1]);
 		if (execve(_argv[0], _argv, _envExec) == -1)
-			std::cerr << "EXECVE ERROR\n";
+			Log::error("Couln't run cgi script : " + static_cast<std::string>(_argv[0]) + '\n');
 	}
 	else // parent process
 	{

@@ -319,7 +319,7 @@ void	Request::setErrorResponse(int error)
 	{
 		// this should be our config error_file however this function isn't a ServerConfig member function
 		// so i'll see that later
-		std::string	path = "./www/404.html";// path to desired error in the future
+		std::string	path = "./www/error/404.html";// path to desired error in the future
 		std::ostringstream	body;
 		std::ifstream	errorFile(path.c_str());
 		if (errorFile)
