@@ -4,11 +4,13 @@
 //this shows the request line parsed.
 Request::Request(const std::string& fullRequest, int fd, const std::vector<ServerConfig> &servers)
 {
-	std::cout << "\n======================================\nFULL REQUEST\n" << fullRequest << "======================================\n";
+	//std::cout << "\n======================================\nFULL REQUEST\n" << fullRequest << "======================================\n";
 	_fullRequest = fullRequest;
 	std::stringstream	ss(fullRequest);
 	ss >> _method >> _uri >> _protocol;
-    std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
+    //std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
+	setConfig(servers);
+	_location = getLocation(*this, _config.locations);
 	setPath();
 	size_t bodyStart = fullRequest.find("\r\n\r\n");
 	if (bodyStart != std::string::npos /*&& _method != "DELETE"*/)
@@ -21,7 +23,6 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
 		std::cout << "No body found in request.\n";
 	}
 	_fd = fd;
-	setConfig(servers);
 	if (DEBUG)
 	{
 		std::cout	<< "\n==========\nServerConfig:\n"
@@ -129,6 +130,7 @@ void	Request::handleRequest()
 
 void	Request::postRequest() {
 	//second parameter is because if it exists you should be appending
+	_path = _path + _location.upload_dir + "/upload.txt";
 	std::ifstream check(_path.c_str());
 	bool fileExists = check.is_open();
 	check.close();
@@ -274,7 +276,23 @@ void	Request::getRequest()
 
 
 void	Request::setPath()
-{
+//	path should be more dynamic
+//	
+//	path is either a path in the location aka a uri that we can find in our location
+//	therefore path 
+//	
+//
+{	
+	if (_uri == _location.url || _uri == _location.url + "/")
+	{
+		_path = _location.root + "/" + _location.index;
+	}
+	else
+	{
+		_path = _location.root + _uri;
+	}
+
+/*
 	if (_method == "GET") {
 		_path = "./www" + _uri;
 		if (_uri == "/")
@@ -289,9 +307,9 @@ void	Request::setPath()
 	else if (_method == "DELETE")
 	{
 		_path = "." + _uri;
-		/*if (_uri == "/")
-			_path = "./upload/data.txt";*/
-	}
+		if (_uri == "/")
+			_path = "./upload/data.txt";
+	}*/
 }
 
 void	Request::setContentType()
@@ -353,7 +371,7 @@ void	Request::setHeader(int code)
 		_header += "HTTP/1.1 200 OK\r\n";
 	}
 	else if (code == 201) {
-		_header += "HHTP/1.1 201 Created\r\n";
+		_header += "HTTP/1.1 201 Created\r\n";
 	}
 	_header += "Content-Type: " + _contentType + "\r\n";
 	_header += "Content-Length: " + toString(_contentLength) + "\r\n";
@@ -370,11 +388,9 @@ void	Request::setConfig(const std::vector<ServerConfig> &servers)
 	{
 		size_t lineEnd = _fullRequest.find("\r\n", hostPos);
 		hostStr = _fullRequest.substr(hostPos, lineEnd - hostPos);
-		std::cout << "hostStr : " << hostStr << '\n';
 		host = hostStr.substr(hostStr.size() - 4, hostStr.size());
 	}
 	
-	std::cout << "Host port: " << host << '\n';
 	for (size_t i = 0; i < svConf.size(); i++)
 	{
 		std::vector<int>	currPorts = svConf[i].port;

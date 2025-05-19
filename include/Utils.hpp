@@ -13,7 +13,7 @@ class Request;
 
 bool isListeningSocket(int fd, const std::vector<ListeningSocket*>& sockets);
 std::string getExtension(const std::string &uri);
-Location    getLocation(const Request &request, const std::map<std::string, Location> &locations);
+Location    getLocation(Request &request, const std::map<std::string, Location> &locations);
 
 template <typename T>
 std::string toString(T value) {

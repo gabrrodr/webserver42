@@ -53,6 +53,7 @@ class   ConfigParser {
         void    parseRoot(const std::string& line, Location& server);
 		std::vector<int>	parsePorts(const std::string	&line);
 		bool	isPort(std::string &token);
+        std::string trailCheck(const std::string &str);
 };
 
 //void  setupServerSockets(const std::vector<ServerConfig>& servers);

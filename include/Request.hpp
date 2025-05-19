@@ -54,6 +54,7 @@ class Request
 		std::string	_path;
 		std::string	_fullRequest;
 		ServerConfig	_config;
+		Location	_location;
 };
 
 #endif

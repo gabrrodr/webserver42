@@ -77,6 +77,7 @@ int main(int argc, char **argv, char **env) {
                 std::cout << "  Max Body Size: " << servers[i].client_max_body_size << " bytes\n";
                 for (std::map<std::string, Location>::iterator it = servers[i].locations.begin(); it != servers[i].locations.end(); ++it) {
                     std::cout << "  Location: " << it->first << "\n";
+                    std::cout << "    url:  " << it->second.url << '\n';
                     std::cout << "    Root: " << it->second.root << "\n";
                     std::cout << "    Index: " << it->second.index << "\n";
                     std::cout << "    Methods: ";

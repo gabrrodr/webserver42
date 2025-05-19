@@ -41,6 +41,7 @@ std::vector<std::string>    ConfigParser::split(const std::string& str, char del
     std::stringstream ss(str);
     std::string item;
     while (std::getline(ss, item, delimiter)) {
+        item = trailCheck(item);
         tokens.push_back(item);
     }
     return tokens;
@@ -182,16 +183,15 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
         if (line.empty() || line[0] == '#')
             continue;
         else if (line.find("root ") == 0) {
-            location.root = line.substr(5);
+            location.root = trailCheck(line.substr(5));
             //parseRoot(line, location);
-            std::cout << "Root: " << location.root << std::endl;
         }
         else if (line.find("index ") == 0)
-            location.index = line.substr(6);
+            location.index = trailCheck(line.substr(6));
         else if (line.find("methods ") == 0)
             location.methods = split(line.substr(8), ' ');
         else if (line.find("upload_store ") == 0) {
-            location.upload_dir = line.substr(13);
+            location.upload_dir = trailCheck(line.substr(13));
         }
         else if (line.find("cgi_path ") == 0)
         {
@@ -345,4 +345,13 @@ void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
     }
     for (size_t i = 0; i < sockets.size(); ++i)
         delete sockets[i];
+}
+
+std::string ConfigParser::trailCheck(const std::string  &str)
+{
+    size_t  trail = str.find(';');
+
+    if (trail != std::string::npos)
+        return (str.substr(0, trail));
+    return (str);
 }
