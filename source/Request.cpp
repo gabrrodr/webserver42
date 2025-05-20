@@ -1,5 +1,10 @@
 
 #include "../include/Request.hpp"
+<<<<<<< HEAD
+=======
+#include "../include/Config.hpp"
+#include <filesystem>
+>>>>>>> upload
 
 //this shows the request line parsed.
 Request::Request(const std::string& fullRequest, int fd, const std::vector<ServerConfig> &servers)
@@ -7,19 +12,17 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
 	//std::cout << "\n======================================\nFULL REQUEST\n" << fullRequest << "======================================\n";
 	_fullRequest = fullRequest;
 	std::stringstream	ss(fullRequest);
+	_fullRequest = fullRequest;
 	ss >> _method >> _uri >> _protocol;
     //std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
 	setConfig(servers);
 	_location = getLocation(*this, _config.locations);
 	setPath();
 	size_t bodyStart = fullRequest.find("\r\n\r\n");
-	if (bodyStart != std::string::npos /*&& _method != "DELETE"*/)
-	{
+	if (bodyStart != std::string::npos /*&& _method != "DELETE"*/) {
 		_body = fullRequest.substr(bodyStart + 4);
-		std::cout << "Body: " << _body << std::hex << std::endl;
-	}
-	else
-	{
+		std::cout << "Body: " << _body << /*std::hex <<*/std::endl;
+	} else {
 		std::cout << "No body found in request.\n";
 	}
 	_fd = fd;
@@ -121,11 +124,56 @@ void	Request::handleRequest()
 		cgiRequest();
 	else if (_method == "GET")
 		getRequest();
-	else if (_method == "POST") 
-		postRequest();
+	else if (_method == "POST") {
+		if (_uri == "/data")
+			handleFileUpload();
+		else
+			postRequest();
+	}
 	else if (_method == "DELETE") {
 		deleteRequest();
 	}
+}
+
+void	Request::handleFileUpload() {
+	size_t filenamePos = _body.find("filename=\"");
+	if (filenamePos == std::string::npos) {
+		Log::error("Filename not found in request body.");
+		return;
+	}
+	//Getting the filename so we can store it with the correct name
+	size_t filenameStart = filenamePos + 10;
+	size_t filenameEnd = _body.find("\"", filenameStart);
+	_filename = _body.substr(filenameStart, filenameEnd - filenameStart);	
+	
+	//now the content type
+	size_t contentTypePos = _body.find("Content-Type: ");
+	if (contentTypePos == std::string::npos) {
+		Log::error("Content-Type not found in request body.");
+		return;
+	}
+	size_t contentTypeStart = contentTypePos + 15;
+	size_t contentTypeEnd = _body.find("\r\n", contentTypeStart);
+	_contentType = _body.substr(contentTypeStart, contentTypeEnd - contentTypeStart);
+
+	size_t contentStart = _body.find("\r\n\r\n", filenameEnd) + 4;
+	size_t contentEnd = _body.find("\r\n");
+	_content = _body.substr(contentStart, contentEnd - contentStart);
+	//now we save the file
+	if (mkdir("upload/data", 0777) == -1 && errno != EEXIST) {
+		Log::error("Failed to create directory.");
+		return;
+	}
+	std::ofstream file((_path + _filename).c_str(), std::ios::binary);
+	if (!file) {
+		Log::error("Failed to open file.");
+		return;
+	}
+	file.write(_content.c_str(), _content.length());
+	file.close();
+
+	std::cout << "File uploaded successfully.\n";
+
 }
 
 void	Request::postRequest() {
@@ -300,9 +348,10 @@ void	Request::setPath()
 	}
 	else if (_method == "POST")
 	{
-		_path = "./upload" + _uri + ".txt";
-		if (_uri == "/")
-			_path = "./upload/data.txt";
+		if (_uri == "/upload")
+			_path = "./upload" + _uri + ".txt";
+		if (_uri == "/data")
+			_path = "./upload/data";
 	}
 	else if (_method == "DELETE")
 	{
