@@ -6,6 +6,7 @@
 #include <sstream>
 #include <fstream>
 #include <cstdio>
+#include <sys/stat.h>
 #include "Log.hpp"
 #include "Config.hpp"
 
@@ -42,6 +43,7 @@ class Request
 		std::string	_header;
 		std::string	_content;
 		std::string	_path;
+		std::string _filename;
 };
 
 #endif
