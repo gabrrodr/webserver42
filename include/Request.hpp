@@ -24,6 +24,7 @@ class Request
 		void	setErrorResponse(int error);
 		void	getRequest();
 		void	postRequest();
+		void	handleFileUpload();
 		void	deleteRequest();
 		void	setContentType(std::string &path);
 		void	cgiRequest();
@@ -43,6 +44,7 @@ class Request
 	private:
 		int			_fd;
 		int			_contentLength;
+		std::string _fullRequest;
 		std::string	_response;
 		std::string	_method;
 		std::string	_uri;
@@ -53,9 +55,13 @@ class Request
 		std::string	_header;
 		std::string	_content;
 		std::string	_path;
+<<<<<<< HEAD
 		std::string	_fullRequest;
 		ServerConfig	_config;
 		Location	_location;
+=======
+		std::string _filename;
+>>>>>>> upload
 };
 
 #endif

@@ -33,6 +33,21 @@
 						document.getElementById("display").innerText = msg;
 					});
 				}
+
+				const form = document.querySelector('form');
+				form.addEventListener('submit', handleSubmit);
+
+				function	handleSubmit(event) {
+					const form = event.currentTarget;
+					const url = new URL(form.action);
+					const formData = new FormData(form);
+
+					fetch(url, {
+						method: form.method,
+						body: formData,
+					});
+					event.preventDefault();
+				}
 			</script>
 
 			</script>
@@ -43,10 +58,11 @@
 				<div id="display" class="message-output"></div>
 			</div>
 			<div>
-				<form action="/uploads" method="post" enctype="multipart/form-data">
+				<h2>Upload files</h2>
+				<form action="/data" method="post" enctype="multipart/form-data" >
 					<label for="file">File</label>
 					<input type="file" name="file" id="file">
-					<button>upload</button>
+					<button type="submit">upload</button>
 				</form>
 			</div>
 		</div>
