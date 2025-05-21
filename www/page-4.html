@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<link rel="stylesheet" href="../css/main.css">
-		<link rel="stylesheet" href="../css/header.css">
-		<link rel="stylesheet" href="../css/navbar.css">
+		<link rel="stylesheet" href="./assets/css/main.css">
+		<link rel="stylesheet" href="./assets/css/header.css">
+		<link rel="stylesheet" href="./assets/css/navbar.css">
 		<title>Delete method</title>
 	</head>
 	<body>
@@ -15,7 +15,7 @@
 		<div id="container">
 			<div id="navbar"></div>
 			<script>
-				fetch('./include/navbar.html')
+				fetch('./navbar.html')
 				.then(res => res.text())
 				.then(data => { document.getElementById('navbar').innerHTML = data; });
 
@@ -28,7 +28,7 @@
 					const confirmed = confirm("Are you sure you want to delete this file?\n" + path);
 					if (!confirmed) return;
 
-					fetch(`/upload/${path}`, {
+					fetch(`/uploads/${path}`, {
 						method: "DELETE"
 					})
 					.then(response => {

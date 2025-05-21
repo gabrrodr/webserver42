@@ -133,14 +133,16 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
         if (line.find("listen ") == 0) 
             server.port = parsePorts(line); 
         else if (line.find("server_name ") == 0)
-        {
-            server.server_name = line.substr(12);
-            size_t  trailingSemiColon = server.server_name.find(';');
-            if (trailingSemiColon != std::string::npos)
-                server.server_name = server.server_name.substr(0, trailingSemiColon);
-        }
+            server.server_name = trailCheck(line.substr(12));
         else if (line.find("error_page ") == 0)
-            server.error_page = line.substr(11);
+        {
+            std::string errorLine = trailCheck(line.substr(11));
+            int errorCode = std::atoi(errorLine.c_str());
+            size_t  slash = errorLine.find_first_of('/');
+            std::string errorPath = errorLine.substr(slash);
+            server.error_page[errorCode] = errorPath;
+            std::cout << "parsed: " << errorCode << " " << server.error_page[errorCode] << '\n';
+        }
         else if (line.find("client_max_body_size ") == 0)
             server.client_max_body_size = parseSize(line.substr(22));
         else if (isPartofLocation(line))
@@ -166,13 +168,16 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
     for (size_t i = 0; i < server.port.size(); i++)
         std::cout << server.port[i] << " ";
     std::cout << "\nServer Name: " << server.server_name << std::endl;
-    std::cout << "Error Page: " << server.error_page << std::endl;
+    std::cout << "  Error Pages:\n";
+    for (std::map<int, std::string>::iterator it = server.error_page.begin(); it != server.error_page.end(); ++it)
+        std::cout << "    " << it->first << " " << it->second << '\n';
     std::cout << "Max Body Size: " << server.client_max_body_size << std::endl;
     return server;
 }
 
 Location    ConfigParser::parseLocation(std::ifstream& file) {
     Location    location;
+    location.autoindex = false;
     std::string line;
     std::cout << "Parsing location..." << std::endl;
     std::cout << "parsing location lines\n";
@@ -190,8 +195,12 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
             location.index = trailCheck(line.substr(6));
         else if (line.find("methods ") == 0)
             location.methods = split(line.substr(8), ' ');
-        else if (line.find("upload_store ") == 0) {
+        else if (line.find("upload_store ") == 0)
+        {
             location.upload_dir = trailCheck(line.substr(13));
+            size_t  trailDot = location.upload_dir.find('.');
+            if (trailDot != std::string::npos)
+                location.upload_dir = location.upload_dir.substr(trailDot + 1, location.upload_dir.size());
         }
         else if (line.find("cgi_path ") == 0)
         {
@@ -207,6 +216,11 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
             if (cgiTrailPos != std::string::npos)
                 location.cgi_extension[location.cgi_extension.size() - 1] = location.cgi_extension[location.cgi_extension.size() - 1].substr(0, cgiTrailPos);
         }
+        else if (line.find("autoindex ") == 0)
+        {
+            std::string autoIndexStr = trailCheck(line.substr(10));
+            location.autoindex = autoIndexStr == "on" ? true : false;
+        }
         else if (!isLocation(line)) {
            break;
         }
@@ -215,6 +229,7 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
     std::cout << "Root: " << location.root << std::endl;
     std::cout << "Index: " << location.index << std::endl;
     std::cout << "Upload Dir: " << location.upload_dir << std::endl;
+    std::cout << "autoindex: " << location.autoindex << std::endl;
     return location;
 }
 

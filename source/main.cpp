@@ -73,7 +73,9 @@ int main(int argc, char **argv, char **env) {
                 for (size_t p = 0; p < servers[i].port.size(); p++)
                     std::cout << servers[i].port[p] << " ";
                 std::cout << "\n  Server Name: " << servers[i].server_name << "\n";
-                std::cout << "  Error Page: " << servers[i].error_page << "\n";
+                std::cout << "  Error Pages:\n";
+                for (std::map<int, std::string>::iterator it = servers[i].error_page.begin(); it != servers[i].error_page.end(); ++it)
+                    std::cout << "    " << it->first << " " << it->second << '\n';
                 std::cout << "  Max Body Size: " << servers[i].client_max_body_size << " bytes\n";
                 for (std::map<std::string, Location>::iterator it = servers[i].locations.begin(); it != servers[i].locations.end(); ++it) {
                     std::cout << "  Location: " << it->first << "\n";
@@ -88,6 +90,8 @@ int main(int argc, char **argv, char **env) {
                     if (!it->second.upload_dir.empty()) {
                         std::cout << "    Upload Dir: " << it->second.upload_dir << "\n";
                     }
+                    if (it->second.autoindex)
+                        std::cout << "    autoindex: true\n";
                 }
             }
             handleIncomingConnections(servers);

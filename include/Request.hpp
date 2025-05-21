@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <cstdio>
+#include <sys/stat.h>
 #include "Log.hpp"
 #include "Config.hpp"
 #include "CGIRequest.hpp"

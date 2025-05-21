@@ -21,6 +21,7 @@ struct  Location {
     std::vector<std::string>    cgi_path;
     std::vector<std::string>    cgi_extension;
     std::vector<std::string>    methods;
+    bool    autoindex;
 };
 
 struct  ServerConfig {
@@ -28,7 +29,7 @@ struct  ServerConfig {
     std::vector<int> port;
     size_t  client_max_body_size;
     std::string server_name;
-    std::string error_page;
+    std::map<int, std::string> error_page;
     std::map<std::string, Location> locations;
 };
 

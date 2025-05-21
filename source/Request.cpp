@@ -26,9 +26,11 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
 	if (DEBUG)
 	{
 		std::cout	<< "\n==========\nServerConfig:\n"
-					<< "\nserver_name : " << _config.server_name
-					<< "\nerror_page : " << _config.error_page
-					<< "\nclient_max_body_size : " << _config.client_max_body_size << '\n'
+					<< "\nserver_name : " << _config.server_name << '\n';
+        std::cout << "  Error Pages:\n";
+        for (std::map<int, std::string>::iterator it = _config.error_page.begin(); it != _config.error_page.end(); ++it)
+            std::cout << "    " << it->first << " " << it->second << '\n';
+		std::cout	<< "\nclient_max_body_size : " << _config.client_max_body_size << '\n'
 					<< "ports : ";
 		for (size_t i = 0; i < _config.port.size(); i++)
 			std::cout << std::dec << _config.port[i] << ' ';
@@ -117,32 +119,67 @@ void	Request::handleRequest()
 	//_response.clear();
 	//_header.clear();
 	//_content.clear();
+	struct stat	pathInfo;
+
+	if (stat(_path.c_str(), &pathInfo) != 0)
+	{
+		std::cout << "dbg: " << _path << " does not exist\n";
+		setErrorResponse(404);
+		sendFullResponse(_fd, _response);
+		return ;
+	}
+	if (S_ISDIR(pathInfo.st_mode) && _location.autoindex)
+	{
+		if (_location.autoindex)
+		{
+			std::cout << "dbg: autoindex\n";
+			return ; 
+		}
+		else
+		{
+			std::cout << "is a directory, no permission?\n";
+			return ;
+		}
+	}
 	if (isCGIRequest(_uri))
+	{
+		std::cout << "dbg: CGI\n"; 
 		cgiRequest();
+	}
 	else if (_method == "GET")
+	{
+		std::cout << "dbg: GET\n"; 
 		getRequest();
+	}	
 	else if (_method == "POST") 
+	{
+		std::cout << "dbg: POST\n"; 
 		postRequest();
-	else if (_method == "DELETE") {
+	}	
+	else if (_method == "DELETE")
+	{
+		std::cout << "dbg: DELETE\n"; 
 		deleteRequest();
 	}
+	else
+		std::cout << "dbg: dir out of bounds?\n" << _fullRequest <<"\n"; 
+
 }
 
 void	Request::postRequest() {
 	//second parameter is because if it exists you should be appending
-	_path = _path + _location.upload_dir + "/upload.txt";
+	_path = _location.root + _location.upload_dir + "/upload.txt";
 	std::ifstream check(_path.c_str());
 	bool fileExists = check.is_open();
 	check.close();
 	std::ofstream file(_path.c_str(), std::ios::app);
-	std::cout << "_path : " << _path << '\n';
 	if (!file.is_open())
 	{
 		Log::error("Failed to open file for writing.");
 		setErrorResponse(500);
 	}
 	else {
-		file << _body;
+		file << _body << '\n';
 		file.close();
 		std::cout << "File written successfully.\n";
 		_contentLength = _body.length();
@@ -188,71 +225,9 @@ void 	Request::deleteRequest() {
 
 void	Request::cgiRequest()
 {
-	std::cout << "\nCGI Request\nFull request:\n" << _fullRequest << '\n';
 	CGIRequest	cgiRequest(*this, _fullRequest, _fd);
 
 	cgiRequest.handleRequest();
-	/*std::string	queryString = getQueryString(_uri);
-	setContentType();
-
-	char	*env[] = {
-		const_cast<char *>(("REQUEST_METHOD=" + _method).c_str()),
-		const_cast<char *>(("QUERY_STRING=" + getQueryString(_uri)).c_str()),
-		const_cast<char *>(("CONTENT_TYPE=" + _contentType).c_str()),
-		const_cast<char *>(("CONTENT_LENGTH=" + toString(_content.length())).c_str()),
-		NULL
-	};
-	
-	int	pipefd[2];
-	if (pipe(pipefd) == -1)
-	{
-		Log::error("Failed to create pipe for CGI.");
-		setErrorResponse(500);
-		return ;
-	}
-
-	pid_t	pid = fork();
-	if (pid == 0)// child process aka CGI script
-	{
-		close(pipefd[0]); // close read end
-		dup2(pipefd[1], STDOUT_FILENO);
-		close(pipefd[1]);
-
-		char	*args[] = {
-			const_cast<char *>(_path.c_str()),
-			NULL
-		};
-		execve(_path.c_str(), args, env);
-		exit(1);
-	}
-	else if (pid > 0)// parent process
-	{
-		close(pipefd[1]);// close write end
-		char	buffer[1024];
-		std::ostringstream	responseStream;
-
-		ssize_t	bytesRead;
-		while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer))) > 0)
-		{
-			responseStream.write(buffer, bytesRead);
-		}
-		close(pipefd[0]);// close read end
-		_response = responseStream.str();
-	}
-	else
-	{
-		Log::error("Failed to fork CGI.");
-		setErrorResponse(500);
-	}
-	sendFullResponse(_fd, _response);
-	// init the requiered CGI ENV variables based on the HTTP request
-	//
-	// execute the script with fork()
-	//
-	// redirect the stdin and stdout to handle input and output between server
-	// and the script
-	//
-	// read the script's output and send it as the HTTP response to the client*/
 }
 
 void	Request::getRequest()
@@ -261,13 +236,20 @@ void	Request::getRequest()
 	std::ostringstream	body;
 	
 	if (!file)
+	{
+		std::cout << "HERE\n";
 		setErrorResponse(404);
+	}
 	else
 	{
+		setContentType();
+		//if (_contentType.empty())
+		//{
+		//	setErrorResponse();
+		//}
 		body << file.rdbuf();
 		_content = body.str();
 		_contentLength = _content.length();
-		setContentType();
 		setHeader(200);
 		_response += _header + _content;
 	}
@@ -276,40 +258,11 @@ void	Request::getRequest()
 
 
 void	Request::setPath()
-//	path should be more dynamic
-//	
-//	path is either a path in the location aka a uri that we can find in our location
-//	therefore path 
-//	
-//
-{	
+{
 	if (_uri == _location.url || _uri == _location.url + "/")
-	{
 		_path = _location.root + "/" + _location.index;
-	}
 	else
-	{
 		_path = _location.root + _uri;
-	}
-
-/*
-	if (_method == "GET") {
-		_path = "./www" + _uri;
-		if (_uri == "/")
-			_path = "./www/index.html";
-	}
-	else if (_method == "POST")
-	{
-		_path = "./upload" + _uri + ".txt";
-		if (_uri == "/")
-			_path = "./upload/data.txt";
-	}
-	else if (_method == "DELETE")
-	{
-		_path = "." + _uri;
-		if (_uri == "/")
-			_path = "./upload/data.txt";
-	}*/
 }
 
 void	Request::setContentType()
@@ -327,24 +280,51 @@ void	Request::setContentType()
 	else if (endsWith(_path, ".jpg") || endsWith(_path, ".jpeg"))
 		_contentType = "image/jpeg";
     else
+	{
+		_contentType = "";
         Log::error("Unknown type: " + _path + '\n'); // added to see what the tester might send through here
+	}
 }
 
 
 void	Request::setErrorResponse(int error)
 {
-	if (error == 404)
-	{
-		// this should be our config error_file however this function isn't a ServerConfig member function
-		// so i'll see that later
-		std::string	path = "./www/error/404.html";// path to desired error in the future
+		std::string	path = _location.root + _config.error_page[error];// path to desired error in the future
+		std::string	errorStr;
 		std::ostringstream	body;
 		std::ifstream	errorFile(path.c_str());
+
+		switch (error)
+		{
+		case 400:
+			errorStr = "Bad Request";
+			break;
+		case 401:
+			errorStr = "Unauthorized";
+			break;
+		case 403:
+			errorStr = "Forbidden";
+			break;
+		case 404:
+			errorStr = "Not Found";
+			break;
+		case 409:
+			errorStr = "Conflict";
+			break;
+		case 504:
+			errorStr = "Gateway Timeout";
+			break;
+		default:
+			errorStr = "Internal Server Error";
+			error = 500;
+			break;
+		}
+
 		if (errorFile)
 		{
 			body << errorFile.rdbuf();
 			_content = body.str();
-			_header += "HTTP/1.1 404 Not Found\r\n";
+			_header += "HTTP/1.1 " + toString(error) + " " + errorStr + "\r\n";
         	_header += "Content-Type: text/html\r\n";
         	_header += "Content-Length: " + toString(_content.length()) + "\r\n";
 			_header += "Connection: close\r\n\r\n";
@@ -352,16 +332,10 @@ void	Request::setErrorResponse(int error)
 		}
 		else
 		{
-			std::cerr << "404.html not found or could not be opened.\n";
+			std::cerr << path << " could not found or could not open.\n";
 			_response += "HTTP/1.1 500 Internal Server Error\r\n";
             _response += "Connection: close\r\n\r\n";
 		}
-	}
-	if (error == 500)
-	{
-		_response += "HTTP/1.1 500 Internal Server Error\r\n";
-        _response += "Connection: close\r\n\r\n";
-	}
 }
 
 
