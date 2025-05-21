@@ -55,13 +55,9 @@ class Request
 		std::string	_header;
 		std::string	_content;
 		std::string	_path;
-<<<<<<< HEAD
-		std::string	_fullRequest;
 		ServerConfig	_config;
 		Location	_location;
-=======
 		std::string _filename;
->>>>>>> upload
 };
 
 #endif
