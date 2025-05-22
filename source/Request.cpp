@@ -429,12 +429,8 @@ void	Request::setConfig(const std::vector<ServerConfig> &servers)
 
 void	Request::handleAutoIndexResponse()
 {
-	_path = customTrailCheck(_path, '/');
-	std::cout << "_path before: " << _path << '\n';
-	_path = _path + _location.url;
-	std::cout << "_path after: " << _path << '\n';
-	std::cout << "INSIDE AUTOINDEX RESPONSE\n_path: " << _path << '\n';
-	DIR	*dir = opendir(_path.c_str()); // returns a pointer to the directory stream
+	std::string	pathTest = _location.root + _uri;
+	DIR	*dir = opendir(pathTest.c_str()); // returns a pointer to the directory stream
 	if (!dir)
 	{
 		Log::error("Failed to open dir: " + _path + " for autoindexing.\n");
@@ -446,31 +442,30 @@ void	Request::handleAutoIndexResponse()
 	body << "#container{background-color: #fff;margin: 5% auto;min-height: 50%;width: 80%;padding: 2%;border-radius: 15px;box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);}";
 	body << "#header{margin: 5% auto 0 auto;text-align: center;}#webserv-logo{max-width: 400px;}";
 	body << "button{padding: 10px 20px;margin-top: 15px;font-size: 16px;background-color: rgba(71, 139, 222, 1);color: white;border: none;border-radius: 5px;cursor: pointer;transition: background-color 0.2s ease;}button:hover{background-color: rgba(176, 72, 169, 1);}";
-	body <<	"</style></head><body><div id=\"header\"><img id=\"webserv-logo\" src=\"../assets/img/webserv-logo.png\" alt=\"webserv-logo\"></div>";
-	body <<	"<div id=\"container\"><ol>";
+	body <<	"</style></head><body><div id=\"header\"><a href=\"/\"><img id=\"webserv-logo\" src=\"/assets/img/webserv-logo.png\" alt=\"webserv-logo\"></a></div>";
+	body <<	"<div id=\"container\"><ul>";
 	
-	//<li>Coffee</li>
-	//<li>Tea</li>
-	//<li>Milk</li>
-	
+			
 	struct dirent	*entry;
 	while ((entry = readdir(dir)))// returns a pointer to a dirent struct representing the next directory stream
 	{
 		std::string	currName = entry->d_name;
+		std::string	hrefLink = _uri + "/" + currName;
 		if (currName == "." || currName == "..")
 			continue;
 		struct stat	currStat;
 		if (stat(_path.c_str(), &currStat) == 0 && S_ISDIR(currStat.st_mode))
 			currName = "/" + currName;
-		std::cout << currName << '\n';
-		body << "<li>" << currName << "</li>";
+		body << "<li><a href=\""<< hrefLink << "\">" << currName << "</a></li>";
 	}
 	closedir(dir);
 	
-	body << "</ol></div></body></html>";
+	body << "</ul></div></body></html>";
 
-	setHeader(200);
+	setContentType();
 	_content = body.str();
+	_contentLength = _content.length();
+	setHeader(200);
 	_response = _header + _content;
 	std::cout << "Sending response:\n" << _response << '\n';
 	sendFullResponse(_fd, _response);
