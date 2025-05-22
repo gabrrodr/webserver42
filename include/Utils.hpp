@@ -14,6 +14,8 @@ class Request;
 bool isListeningSocket(int fd, const std::vector<ListeningSocket*>& sockets);
 std::string getExtension(const std::string &uri);
 Location    getLocation(Request &request, const std::map<std::string, Location> &locations);
+std::string getWorkingDir();
+std::string customTrailCheck(const std::string  &str, char c);
 
 template <typename T>
 std::string toString(T value) {

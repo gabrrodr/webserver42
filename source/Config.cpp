@@ -141,7 +141,6 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
             size_t  slash = errorLine.find_first_of('/');
             std::string errorPath = errorLine.substr(slash);
             server.error_page[errorCode] = errorPath;
-            std::cout << "parsed: " << errorCode << " " << server.error_page[errorCode] << '\n';
         }
         else if (line.find("client_max_body_size ") == 0)
             server.client_max_body_size = parseSize(line.substr(22));

@@ -66,3 +66,18 @@ Location    getLocation(Request &request, const std::map<std::string, Location> 
     }
     return (loc);
 }
+
+std::string	getWorkingDir()
+{
+	char	temp[4096];
+	return (getcwd(temp, sizeof(temp)) ? std::string(temp) : std::string(""));
+}
+
+std::string customTrailCheck(const std::string  &str, char c)
+{
+    size_t  trail = str.find_last_of(c);
+
+    if (trail != std::string::npos)
+        return (str.substr(0, trail));
+    return (str);
+}
