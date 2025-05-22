@@ -10,7 +10,7 @@ print(f"""
 	<body>
 		<div id="header">
 			<a href="/">
-				<img id="webserv-logo" src="../assets/img/webserv-logo.png" alt="webserv-logo">
+				<img id="webserv-logo" src="/assets/img/webserv-logo.png" alt="webserv-logo">
 			</a>
 		</div>
 		<div id="container">
