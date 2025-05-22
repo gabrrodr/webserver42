@@ -21,7 +21,6 @@ class CGIRequest
 		std::string	getScriptName();
 		void	getScriptPath();
 		void	getInterpreter();
-		std::string	getWorkingDir();
 		std::string	getHeader(const std::string &fullRequest);
 		void	getHeadersMap();
 		void	getQueryString();

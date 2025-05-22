@@ -2,7 +2,6 @@
 #include "../include/Request.hpp"
 #include <filesystem>
 
-//this shows the request line parsed.
 Request::Request(const std::string& fullRequest, int fd, const std::vector<ServerConfig> &servers)
 {
 	//std::cout << "\n======================================\nFULL REQUEST\n" << fullRequest << "======================================\n";
@@ -40,7 +39,7 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
 			std::cout << "location : " << it->first
 					  << "\nroot  : " << it->second.root
 					  << "\nindex : " << it->second.index
-					  << "\nupload_dir : " << it->second.upload_dir // upload_dir doesn't have anything even when it should it seems
+					  << "\nupload_dir : " << it->second.upload_dir
 					  << "\nmethods : "
 					  << "\ncgi_path : ";
 			for (std::vector<std::string>::iterator itCGIP = it->second.cgi_path.begin(); itCGIP != it->second.cgi_path.end(); ++itCGIP)
@@ -120,6 +119,12 @@ void	Request::handleRequest()
 	//_content.clear();
 	struct stat	pathInfo;
 
+	std::string autoIndexBool = _location.autoindex == true ? "true" : "false";
+
+	std::cout << "Current Request:\n" << _method << " " << _uri << " " << _protocol << "\nPath: " << _path 
+			  << "\nlocation: " << _location.url
+			  << "\nautoindex: " << autoIndexBool
+			  << "\n";
 	if (stat(_path.c_str(), &pathInfo) != 0)
 	{
 		std::cout << "dbg: " << _path << " does not exist\n";
@@ -128,19 +133,8 @@ void	Request::handleRequest()
 		return ;
 	}
 	if (S_ISDIR(pathInfo.st_mode) && _location.autoindex)
-	{
-		if (_location.autoindex)
-		{
-			std::cout << "dbg: autoindex\n";
-			return ; 
-		}
-		else
-		{
-			std::cout << "is a directory, no permission?\n";
-			return ;
-		}
-	}
-	if (isCGIRequest(_uri))
+		handleAutoIndexResponse();
+	else if (isCGIRequest(_uri))
 	{
 		std::cout << "dbg: CGI\n"; 
 		cgiRequest();
@@ -310,7 +304,7 @@ void	Request::setPath()
 
 void	Request::setContentType()
 {
-	if (endsWith(_path, ".html"))
+	if (endsWith(_path, ".html") || endsWith(_path, ".htm"))
 		_contentType = "text/html";
 	else if (endsWith(_path, ".txt"))
 		_contentType = "text/plain";
@@ -318,10 +312,16 @@ void	Request::setContentType()
 		_contentType = "text/css";
 	else if (endsWith(_path, ".js"))
 		_contentType = "application/javascript";
+	else if (endsWith(_path, ".json"))
+		_contentType = "application/json";
+	else if (endsWith(_path, ".gif"))
+		_contentType = "image/gif";
 	else if (endsWith(_path, ".png"))
 		_contentType = "image/png";
 	else if (endsWith(_path, ".jpg") || endsWith(_path, ".jpeg"))
 		_contentType = "image/jpeg";
+	else if (endsWith(_path, ".ico"))
+	    _contentType= "image/x-icon";
     else
 	{
 		_contentType = "";
@@ -392,7 +392,7 @@ void	Request::setHeader(int code)
 	}
 	_header += "Content-Type: " + _contentType + "\r\n";
 	_header += "Content-Length: " + toString(_contentLength) + "\r\n";
-	_header += "Connection: close\r\n\r\n";
+	_header += "\r\n";
 }
 
 void	Request::setConfig(const std::vector<ServerConfig> &servers)
@@ -420,6 +420,67 @@ void	Request::setConfig(const std::vector<ServerConfig> &servers)
 		}
 	}
 }
+
+/************************************************************************/
+/*                                                                      */
+/*                               autoindex                              */
+/*                                                                      */
+/************************************************************************/
+
+void	Request::handleAutoIndexResponse()
+{
+	_path = customTrailCheck(_path, '/');
+	std::cout << "_path before: " << _path << '\n';
+	_path = _path + _location.url;
+	std::cout << "_path after: " << _path << '\n';
+	std::cout << "INSIDE AUTOINDEX RESPONSE\n_path: " << _path << '\n';
+	DIR	*dir = opendir(_path.c_str()); // returns a pointer to the directory stream
+	if (!dir)
+	{
+		Log::error("Failed to open dir: " + _path + " for autoindexing.\n");
+		return;
+	}
+	std::stringstream	body;
+	body << "<!DOCTYPE html><html><head><title>Home</title><style>";
+	body << "body{font-family: 'Helvetica neue', Arial, sans-serif;background: linear-gradient(0deg, rgba(176, 72, 169, 1) 35%, rgba(71, 139, 222, 1) 100%);background-attachment: fixed;background-size: cover;color: #333;}";
+	body << "#container{background-color: #fff;margin: 5% auto;min-height: 50%;width: 80%;padding: 2%;border-radius: 15px;box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);}";
+	body << "#header{margin: 5% auto 0 auto;text-align: center;}#webserv-logo{max-width: 400px;}";
+	body << "button{padding: 10px 20px;margin-top: 15px;font-size: 16px;background-color: rgba(71, 139, 222, 1);color: white;border: none;border-radius: 5px;cursor: pointer;transition: background-color 0.2s ease;}button:hover{background-color: rgba(176, 72, 169, 1);}";
+	body <<	"</style></head><body><div id=\"header\"><img id=\"webserv-logo\" src=\"../assets/img/webserv-logo.png\" alt=\"webserv-logo\"></div>";
+	body <<	"<div id=\"container\"><ol>";
+	
+	//<li>Coffee</li>
+	//<li>Tea</li>
+	//<li>Milk</li>
+	
+	struct dirent	*entry;
+	while ((entry = readdir(dir)))// returns a pointer to a dirent struct representing the next directory stream
+	{
+		std::string	currName = entry->d_name;
+		if (currName == "." || currName == "..")
+			continue;
+		struct stat	currStat;
+		if (stat(_path.c_str(), &currStat) == 0 && S_ISDIR(currStat.st_mode))
+			currName = "/" + currName;
+		std::cout << currName << '\n';
+		body << "<li>" << currName << "</li>";
+	}
+	closedir(dir);
+	
+	body << "</ol></div></body></html>";
+
+	setHeader(200);
+	_content = body.str();
+	_response = _header + _content;
+	std::cout << "Sending response:\n" << _response << '\n';
+	sendFullResponse(_fd, _response);
+}
+
+/************************************************************************/
+/*                                                                      */
+/*                               autoindex                              */
+/*                                  end                                 */
+/************************************************************************/
 
 const std::string	&Request::getMethod() const { return(_method); }
 

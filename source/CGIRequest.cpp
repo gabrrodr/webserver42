@@ -136,6 +136,7 @@ void	CGIRequest::initCGIenv()
 std::string	CGIRequest::getRootPath()
 {
 	std::string	workDir = getWorkingDir();
+	std::cout << "workDir: " << workDir << '\n';
 	std::string	root = _location.root;
 	if (root[0] == '.')
 		root.erase(0, 1);
@@ -204,12 +205,6 @@ void	CGIRequest::getInterpreter()
 		}
 	}
 	_interpreter = _scriptPath;
-}
-
-std::string	CGIRequest::getWorkingDir()
-{
-	char	temp[4096];
-	return (getcwd(temp, sizeof(temp)) ? std::string(temp) : std::string(""));
 }
 
 void	CGIRequest::getScriptPath()

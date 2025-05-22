@@ -9,6 +9,7 @@
 #include <map>
 #include <cstdio>
 #include <sys/stat.h>
+#include <dirent.h>
 #include "Log.hpp"
 #include "Config.hpp"
 #include "CGIRequest.hpp"
@@ -21,6 +22,7 @@ class Request
 		Request(const std::string& fullRequest, int fd, const std::vector<ServerConfig> &servers);
 		void	parseHeaders(std::stringstream &ss);
 		void	handleRequest();
+		void	handleAutoIndexResponse();
 		void	setErrorResponse(int error);
 		void	getRequest();
 		void	postRequest();
