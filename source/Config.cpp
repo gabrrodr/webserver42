@@ -304,7 +304,7 @@ static void    setupListeningSocket(const ServerConfig &servers, std::vector<pol
         }
         catch(const std::exception& e)
         {
-            Log::error("Failed to set up server on port : " + servers.port[j] + '\n');
+            Log::error("Failed to set up server on port : " + toString(servers.port[j]) + '\n');
         }
     }
 }
