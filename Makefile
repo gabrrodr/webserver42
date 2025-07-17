@@ -17,8 +17,11 @@ SRCS	=	$(addprefix $(SRC_DIR), main.cpp \
 									Request.cpp \
 									BufferRequest.cpp \
 									CGIRequest.cpp \
+									Signal.cpp \
 									Utils.cpp)
-OBJ		= $(patsubst $(SRC_DIR)%.cpp, $(OBJ_DIR)%.o, $(SRCS)) 
+
+OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRCS:.cpp=.o)))
+
 FLAGS	= -Wall -Wextra -Werror -std=c++98 -g #-fsanitize=address
 
 $(OBJ_DIR)%.o: $(SRC_DIR)%.cpp | $(OBJ_DIR)

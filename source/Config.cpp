@@ -11,28 +11,15 @@ std::vector<ServerConfig>   ConfigParser::parse() {
     std::vector<ServerConfig>   servers;
     std::string line;
     while (std::getline(file, line)) {
-        std::cout << RED << "0 line: " << line << RESET << '\n';
         trim(line);        
-        std::cout << RED << "1 line: " << line << RESET << '\n';
         if (line.empty() || line[0] == '#')
             continue;
-        std::cout << RED << "2 line: " << line << RESET << '\n';
         if (line == "server {") {
             servers.push_back(parseServer(file, line));
         }
         else if (!line.empty())
             throw std::runtime_error("Unexpected line in configuration (parse): " + line);
-        std::cout << RED << "3 line: " << line << RESET << '\n';
-        //if (line == "}") {
-        //    break;
-        //}
-        //else
-        //    throw std::runtime_error("Unexpected line in configuration (parse): " + line);
-        //std::cout << RED << "4 line: " << line << RESET << '\n';
     }
-    std::vector<ServerConfig>::iterator it = servers.begin();
-    for (;it != servers.end(); ++it)
-        std::cout << RED << "server: " << it->server_name << RESET << '\n';
     return servers;
 }
 
@@ -140,7 +127,6 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
     while (std::getline(file, line))
     {
         trim(line);
-        std::cout << RED << "line location: " << line << RESET << '\n';
         if (line == "}")
             break;
         if (line.empty() || line[0] == '#')
@@ -339,7 +325,7 @@ void    ConfigParser::handleClientRequests(std::vector<pollfd>& poll_fds, size_t
     //--i;
 }
 
-static void    setupListeningSocket(const ServerConfig &servers, std::vector<pollfd> *poll_fds, std::vector<ListeningSocket*> *sockets)
+void    ConfigParser::setupListeningSocket(const ServerConfig &servers, std::vector<pollfd> *poll_fds, std::vector<ListeningSocket*> *sockets)
 {
     for (size_t j = 0; j < servers.port.size(); j++)
     {
@@ -354,15 +340,11 @@ static void    setupListeningSocket(const ServerConfig &servers, std::vector<pol
             pfd.events = POLLIN;
             poll_fds->push_back(pfd);
             sockets->push_back(server);
-
-
-
             std::cout << "Server listening on port " << servers.port[j] << std::endl;
         }
         catch(const std::exception& e)
         {
-            Log::error("Failed to set up server on port : " + toString(servers.port[j]) + '\n');
-            exit(1);
+            throw   ServerException("Failed to set up server on port: " + toString(servers.port[j]) + '\n');
         }
     }
 }
@@ -388,8 +370,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
         setupListeningSocket(servers[i], &poll_fds, &sockets);
 
     std::cout << "Entering main event loop..." << std::endl;
-    bool flag = true;
-    while (true)
+    while (!endFlag)
     {
         //pollFdsActivity(poll_fds);
         //std::vector<pollfd>::iterator   it = poll_fds.begin();
@@ -401,7 +382,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
         {
             activity = poll(&poll_fds[0], poll_fds.size(), 350); 
         } while (activity < 0 && errno == EINTR);
-        if (activity < 0 && !flag)
+        if (activity < 0 && !endFlag)
         {
             Log::error("Poll failed");
             continue;
@@ -437,6 +418,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
         }
         cleanupPendingFds(poll_fds);
     }
+    std::cout << RED << "Stoping servers" << RESET << '\n';
     for (size_t i = 0; i < sockets.size(); ++i)
         delete sockets[i];
 }

@@ -48,7 +48,18 @@ CGIRequest::CGIRequest(Request &request, const std::string &requestStr, int clie
 	}
 }
 
-CGIRequest::~CGIRequest() {}
+CGIRequest::~CGIRequest()
+{
+	for (size_t	i = 0; _envExec[i] != NULL; i++	)
+		if (_envExec[i])
+			free(_envExec[i]);
+	delete[] _envExec;
+	_env.clear();
+	_requestHeaders.clear();
+	for (size_t i = 0; _argv[i] != NULL; i++)
+		if (_argv[i])
+			free(_argv[i]);
+}
 
 void	CGIRequest::initCGIExecEnv()
 {

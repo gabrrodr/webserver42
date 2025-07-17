@@ -1,4 +1,5 @@
 #include <fstream>
+#include <csignal>
 #include "../include/MainHeader.hpp"
 #include "../include/Log.hpp"
 #include "../include/Config.hpp"
@@ -51,8 +52,10 @@ int    help(char **argv) {
     return (0);
 }
 
-int main(int argc, char **argv, char **env) {
-
+int main(int argc, char **argv, char **env)
+{
+    std::signal(SIGINT, stopServer);
+    std::signal(SIGPIPE, SIG_IGN);
     (void)env;
     if (argc != 2) {
         Log::error("❌ Invalid usage!\n"
