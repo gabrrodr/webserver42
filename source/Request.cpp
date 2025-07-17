@@ -57,6 +57,7 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
 			std::cout << '\n';
 		}
 	}
+	Log::message(RED+_config.server_name+" ["+_method+"] "+_uri+RESET);
   	handleRequest();
 }
 
@@ -359,13 +360,13 @@ void	Request::setContentType()
 
 void	Request::setErrorResponse(int error)
 {
-		std::string	path = _location.root + _config.error_page[error];// path to desired error in the future
-		std::string	errorStr;
-		std::ostringstream	body;
-		std::ifstream	errorFile(path.c_str());
-
-		switch (error)
-		{
+	std::string	path = _location.root + _config.error_page[error];// path to desired error in the future
+	std::string	errorStr;
+	std::ostringstream	body;
+	std::ifstream	errorFile(path.c_str());
+	
+	switch (error)
+	{
 		case 400:
 			errorStr = "Bad Request";
 			break;
@@ -378,6 +379,9 @@ void	Request::setErrorResponse(int error)
 		case 404:
 			errorStr = "Not Found";
 			break;
+		case 405:
+			errorStr = "Method Not Allowed";
+			break;
 		case 409:
 			errorStr = "Conflict";
 			break;
@@ -388,24 +392,24 @@ void	Request::setErrorResponse(int error)
 			errorStr = "Internal Server Error";
 			error = 500;
 			break;
-		}
+	}
 
-		if (errorFile)
-		{
-			body << errorFile.rdbuf();
-			_content = body.str();
-			_header += "HTTP/1.1 " + toString(error) + " " + errorStr + "\r\n";
-        	_header += "Content-Type: text/html\r\n";
-        	_header += "Content-Length: " + toString(_content.length()) + "\r\n";
-			_header += "Connection: close\r\n\r\n";
-			_response += _header + _content;
-		}
-		else
-		{
-			std::cerr << path << " could not found or could not open.\n";
-			_response += "HTTP/1.1 500 Internal Server Error\r\n";
-            _response += "Connection: close\r\n\r\n";
-		}
+	if (errorFile)
+	{
+		body << errorFile.rdbuf();
+		_content = body.str();
+		_header += "HTTP/1.1 " + toString(error) + " " + errorStr + "\r\n";
+       	_header += "Content-Type: text/html\r\n";
+       	_header += "Content-Length: " + toString(_content.length()) + "\r\n";
+		_header += "Connection: close\r\n\r\n";
+		_response += _header + _content;
+	}
+	else
+	{
+		std::cerr << path << " could not found or could not open.\n";
+		_response += "HTTP/1.1 500 Internal Server Error\r\n";
+           _response += "Connection: close\r\n\r\n";
+	}
 }
 
 
