@@ -37,4 +37,8 @@ struct MatchFd
     }
 };
 
+extern bool endFlag;
+void	stopServer(int signum);
+
+
 #endif

@@ -49,6 +49,7 @@ class   ConfigParser {
         void    cleanupPendingFds(std::vector<pollfd> clientFds);
         void    handleIncomingConnections(const std::vector<ServerConfig>& servers);
         void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i, const std::vector<ServerConfig> &servers);
+        void    setupListeningSocket(const ServerConfig &servers, std::vector<pollfd> *poll_fds, std::vector<ListeningSocket*> *sockets);
         std::vector<ServerConfig>   parse();
 
         int getRedirectCode(const std::string &line);
@@ -63,6 +64,17 @@ class   ConfigParser {
 		bool	isPort(std::string &token);
         std::string trailCheck(const std::string &str);
         std::vector<int>             _pendingFds;
+
+        class   ServerException : public std::exception
+        {
+            public:
+                ServerException(const std::string &error) : msg(error) {}
+                ~ServerException() throw() {}
+                const char  *what() const throw() { return(msg.c_str()); }
+
+            private:
+                std::string msg;
+        };
 };
 
 //void  setupServerSockets(const std::vector<ServerConfig>& servers);
