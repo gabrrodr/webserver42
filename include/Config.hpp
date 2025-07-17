@@ -9,6 +9,7 @@
 #include <vector>
 #include <fcntl.h>
 #include <map>
+#include <algorithm>
 #include "MainHeader.hpp"
 #include "Log.hpp"
 
@@ -18,6 +19,7 @@ struct  Location {
     std::string root;
     std::string index;
     std::string upload_dir;
+    std::pair<int, std::string>  redirect;
     std::vector<std::string>    cgi_path;
     std::vector<std::string>    cgi_extension;
     std::vector<std::string>    methods;
@@ -44,8 +46,13 @@ class   ConfigParser {
 
     public:
         ConfigParser(const std::string& filename);
+        void    cleanupPendingFds(std::vector<pollfd> clientFds);
+        void    handleIncomingConnections(const std::vector<ServerConfig>& servers);
+        void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i, const std::vector<ServerConfig> &servers);
         std::vector<ServerConfig>   parse();
 
+        int getRedirectCode(const std::string &line);
+        std::string getRedirectUrl(const std::string &line);
         bool    isLocation(const std::string& line);
         static void    trim(std::string& str);
         std::vector<std::string>    split(const std::string& str, char delimiter);
@@ -55,9 +62,9 @@ class   ConfigParser {
 		std::vector<int>	parsePorts(const std::string	&line);
 		bool	isPort(std::string &token);
         std::string trailCheck(const std::string &str);
+        std::vector<int>             _pendingFds;
 };
 
 //void  setupServerSockets(const std::vector<ServerConfig>& servers);
-void    handleIncomingConnections(const std::vector<ServerConfig>& servers);
 
 #endif

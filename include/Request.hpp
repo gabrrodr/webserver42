@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <sys/stat.h>
 #include <dirent.h>
+#include "BufferRequest.hpp"
 #include "Log.hpp"
 #include "Config.hpp"
 #include "CGIRequest.hpp"
@@ -32,9 +33,11 @@ class Request
 		void	cgiRequest();
 		void	setPath();
 		void	setContentType();
-		std::string	getQueryString(const std::string &uri);
 		void	setHeader(int code);
+		void	cleanPath();
 		void	setConfig(const std::vector<ServerConfig> &servers);
+		void	sendFullResponse(int fd, const std::string &response);
+		void	setRedirectResponse();
 		const std::string	&getMethod() const;
 		const std::string	&getUri() const;
 		const std::string	&getProtocol() const;
@@ -56,6 +59,7 @@ class Request
 		std::string	_contentType;
 		std::string	_header;
 		std::string	_content;
+		std::string	_queryString;
 		std::string	_path;
 		ServerConfig	_config;
 		Location	_location;

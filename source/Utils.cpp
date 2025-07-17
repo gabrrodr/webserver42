@@ -23,10 +23,9 @@ std::string getExtension(const std::string &uri) {
     return (extension);
 }
 
-std::string getMatchingUrl(const std::map<std::string, Location> &locations, const std::string &uri, const std::string &method)
+std::string getMatchingUrl(const std::map<std::string, Location> &locations, const std::string &uri)
 {
     std::string match = "";
-    std::string currMethod;
     std::string currLoc;
     std::map<std::string, Location> locs = locations;
     std::map<std::string, Location>::const_iterator   itLoc = locs.begin();
@@ -34,17 +33,7 @@ std::string getMatchingUrl(const std::map<std::string, Location> &locations, con
 
     for (; itLoc != iteLoc; itLoc++)
     {      
-        std::vector<std::string>::const_iterator  itM = itLoc->second.methods.begin();
-        std::vector<std::string>::const_iterator  iteM = itLoc->second.methods.end();
         currLoc = itLoc->second.url;
-        for (; itM != iteM; ++itM)
-        {
-            currMethod = *itM;
-            if (currMethod.find(method) == 0)
-                break;
-        }
-        if (itM == itLoc->second.methods.end())
-            continue;
         if (uri.find(currLoc) == 0 && currLoc.size() > match.size())
             match = currLoc;
     }
@@ -53,8 +42,7 @@ std::string getMatchingUrl(const std::map<std::string, Location> &locations, con
 
 Location    getLocation(Request &request, const std::map<std::string, Location> &locations)
 {
-    std::string uri = request.getUri();
-    std::string matchingUrl = getMatchingUrl(locations, request.getUri(), request.getMethod());
+    std::string matchingUrl = getMatchingUrl(locations, request.getUri());
     Location    loc;
 
     std::map<std::string, Location>::const_iterator   it = locations.begin();
@@ -62,7 +50,7 @@ Location    getLocation(Request &request, const std::map<std::string, Location> 
     for (; it != ite; ++it)
     {
         if (matchingUrl == it->second.url)
-            return (it->second);
+            loc = it->second;
     }
     return (loc);
 }

@@ -13,13 +13,17 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
 	setConfig(servers);
 	_location = getLocation(*this, _config.locations);
 	setPath();
+	cleanPath();
 	size_t bodyStart = fullRequest.find("\r\n\r\n");
 	if (bodyStart != std::string::npos /*&& _method != "DELETE"*/) {
 		_body = fullRequest.substr(bodyStart + 4);
-		std::cout << "Body: " << _body << /*std::hex <<*/std::endl;
+		//std::cout << "Body: " << _body << "\nbody size: " << _body.size() << /*std::hex <<*/std::endl;
+		//std::cout << "fullRequest:\n" << fullRequest << '\n';
 	} else {
 		std::cout << "No body found in request.\n";
 	}
+	
+	//std::cout << "BODY ON REQUEST = " << _body << "\nsize of: " << _body.size() << '\n';
 	_fd = fd;
 	if (DEBUG)
 	{
@@ -60,7 +64,7 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
 Request::~Request() {}
 
 
-static void sendFullResponse(int fd, const std::string &response)
+void Request::sendFullResponse(int fd, const std::string &response)
 {
     size_t  totalSent = 0;
     size_t  responseLength = response.length();
@@ -80,7 +84,9 @@ static void sendFullResponse(int fd, const std::string &response)
 	else {
 		size_t headerEnd = response.find("\r\n\r\n");
 		if (headerEnd != std::string::npos)
+		{
 			std::cout << response.substr(0, headerEnd + 4) << "\n[Body omitted]\n";
+		}
 	}
 }
 
@@ -100,17 +106,16 @@ static bool	isCGIRequest(std::string &uri)
 //	part of the string that comes after the ?
 //	ex: GET /script.cgi?name=Gabi&age=25 HTTP/1.1
 //	
-std::string	Request::getQueryString(const std::string &uri)
+
+bool	methodIsAllowed(std::string &method, std::vector<std::string> &vec)
 {
-	std::string	queryString;
-	size_t	pos = uri.find('?');
-	if (pos != std::string::npos)
+	for (size_t i = 0; i < vec.size(); i++)
 	{
-		queryString = uri.substr(pos + 1);
-		_uri = uri.substr(0, pos);
+		if (vec[i].find(method) == 0)
+			return(true);
 	}
-	return (queryString);
-}
+	return (false);
+}	
 
 void	Request::handleRequest()
 {
@@ -121,10 +126,22 @@ void	Request::handleRequest()
 
 	std::string autoIndexBool = _location.autoindex == true ? "true" : "false";
 
-	std::cout << "Current Request:\n" << _method << " " << _uri << " " << _protocol << "\nPath: " << _path 
-			  << "\nlocation: " << _location.url
-			  << "\nautoindex: " << autoIndexBool
-			  << "\n";
+	//std::cout << "Current Request:\n" << _method << " " << _uri << " " << _protocol << "\nPath: " << _path 
+	//		  << "\nlocation: " << _location.url
+	//		  << "\nautoindex: " << autoIndexBool
+	//		  << "\n";
+	if (!_location.redirect.second.empty())
+	{
+		setRedirectResponse();
+		sendFullResponse(_fd, _response);
+		return ;
+	}
+	if (!methodIsAllowed(_method, _location.methods))
+	{
+		Log::error("Method isn't allowed in this location.\n");
+		setErrorResponse(405);
+		return ;
+	}
 	if (stat(_path.c_str(), &pathInfo) != 0)
 	{
 		std::cout << "dbg: " << _path << " does not exist\n";
@@ -134,9 +151,10 @@ void	Request::handleRequest()
 	}
 	if (S_ISDIR(pathInfo.st_mode) && _location.autoindex)
 		handleAutoIndexResponse();
-	else if (isCGIRequest(_uri))
+	else if (isCGIRequest(_uri) && !S_ISDIR(pathInfo.st_mode))
 	{
-		std::cout << "dbg: CGI\n"; 
+		std::cout << "dbg: CGI\n";
+		std::cout << "dbg: CGI FULL REQUEST\n" << _fullRequest << std::endl;
 		cgiRequest();
 	}
 	else if (_method == "GET")
@@ -157,9 +175,6 @@ void	Request::handleRequest()
 		std::cout << "dbg: DELETE\n"; 
 		deleteRequest();
 	}
-	else
-		std::cout << "dbg: dir out of bounds?\n" << _fullRequest <<"\n"; 
-
 }
 
 void	Request::handleFileUpload() {
@@ -268,6 +283,8 @@ void	Request::cgiRequest()
 }
 
 void	Request::getRequest()
+// ToDo
+// throw error when it is a directory and cant access?
 {
 	std::ifstream	file(_path.c_str());
 	std::ostringstream	body;
@@ -293,6 +310,16 @@ void	Request::getRequest()
 	sendFullResponse(_fd, _response);
 }
 
+void	Request::cleanPath()
+{
+	size_t	qMark = _path.find('?');
+
+	if (qMark != std::string::npos)
+	{
+		_queryString = _path.substr(qMark + 1);
+		_path = _path.substr(0, qMark);
+	}
+}
 
 void	Request::setPath()
 {
@@ -421,6 +448,12 @@ void	Request::setConfig(const std::vector<ServerConfig> &servers)
 	}
 }
 
+void	Request::setRedirectResponse()
+{
+	_response = "HTTP/1.1 " + toString(_location.redirect.first) + " Redirect\r\n";
+	_response += "Location: " + _location.redirect.second + "\r\n\r\n";
+}
+
 /************************************************************************/
 /*                                                                      */
 /*                               autoindex                              */
@@ -467,7 +500,6 @@ void	Request::handleAutoIndexResponse()
 	_contentLength = _content.length();
 	setHeader(200);
 	_response = _header + _content;
-	std::cout << "Sending response:\n" << _response << '\n';
 	sendFullResponse(_fd, _response);
 }
 

@@ -18,10 +18,23 @@ std::string getWorkingDir();
 std::string customTrailCheck(const std::string  &str, char c);
 
 template <typename T>
-std::string toString(T value) {
+std::string toString(T value)
+{
     std::stringstream stream;
     stream << value;
     return (stream.str());
 }
+
+struct MatchFd
+{
+    int match;
+    
+    MatchFd(int fd) : match(fd) {}
+
+    bool    operator()(const pollfd &pfd) const
+    {
+        return pfd.fd == match;
+    }
+};
 
 #endif
