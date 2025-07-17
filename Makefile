@@ -15,6 +15,7 @@ SRCS	=	$(addprefix $(SRC_DIR), main.cpp \
 									ConnectionSocket.cpp \
 									Config.cpp \
 									Request.cpp \
+									BufferRequest.cpp \
 									CGIRequest.cpp \
 									Utils.cpp)
 OBJ		= $(patsubst $(SRC_DIR)%.cpp, $(OBJ_DIR)%.o, $(SRCS)) 

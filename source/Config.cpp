@@ -78,7 +78,11 @@ void        ConfigParser::parseRoot(const std::string& line, Location& server) {
 
 
 bool    ConfigParser::isLocation(const std::string& line) {
-    if (line.find("location") == 0 || line.find("root") == 0 || line.find("index") == 0 || line.find("methods") == 0 || line.find("upload_dir") == 0) {
+    if (line.find("location") == 0 || line.find("root") == 0
+        || line.find("index") == 0 || line.find("methods") == 0
+        || line.find("upload_store") == 0 || line.find("cgi_path") == 0
+        || line.find("cgi_extension") == 0 || line.find("autoindex") == 0
+        || line.find("redirect") == 0) {
         return true;
     }
     return false;
@@ -220,15 +224,24 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
             std::string autoIndexStr = trailCheck(line.substr(10));
             location.autoindex = autoIndexStr == "on" ? true : false;
         }
+        else if (line.find("redirect ") == 0)
+        {
+            int code = getRedirectCode(line);
+            std::string redirect = getRedirectUrl(line);
+            location.redirect.first = code; 
+            location.redirect.second = redirect; 
+        }
         else if (!isLocation(line)) {
-           break;
+            break;
         }
     }
     std::cout << "Location parsed!" << std::endl;
+    std::cout << "Location: " << location.url << std::endl;
     std::cout << "Root: " << location.root << std::endl;
     std::cout << "Index: " << location.index << std::endl;
     std::cout << "Upload Dir: " << location.upload_dir << std::endl;
     std::cout << "autoindex: " << location.autoindex << std::endl;
+    std::cout << "redirect: " << location.redirect.first << " " << location.redirect.second << '\n';
     return location;
 }
 
@@ -259,30 +272,60 @@ void    setupServerSockets(const std::vector<ServerConfig>& servers) {
     }
 }*/
 
-void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i, const std::vector<ServerConfig> &servers) {
+ssize_t readRequest(int fd, char *buffer, size_t bufferSize)
+{
+    ssize_t n = recv(fd, buffer, bufferSize, 0);
+    if (n < 0)
+    {
+        if (DEBUG)
+            std::cerr << "ERROR reading from client request on server: \n";
+    }
+    return (n);
+}
+
+void    ConfigParser::handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i, const std::vector<ServerConfig> &servers) {
 
     char buffer[4096];
     int fd = poll_fds[i].fd;
     std::string fullRequest;
+    BufferRequest   bufferRequest;
 
-    while (true) {
-        int bytesReceived = recv(fd, buffer, sizeof(buffer) - 1, 0);
-        if (bytesReceived <= 0) {
-            std::cout << "Client disconnected or error on FD: " << fd << std::endl;
-            close(fd);
-            poll_fds.erase(poll_fds.begin() + i);
-            --i;
-            return;
-        }
-        buffer[bytesReceived] = '\0';
-        fullRequest.append(buffer, bytesReceived);
-        if (fullRequest.find("\r\n\r\n") != std::string::npos)
+    while (!bufferRequest.requestOver())
+    {
+        std::memset(buffer, 0, sizeof(buffer));
+        ssize_t n = readRequest(fd, buffer, sizeof(buffer));
+        if (n < 0)
+        {
+            bufferRequest.getBuffer().clear();
             break;
+        }
+        bufferRequest.appendBuffer(buffer, n);
+
+        //int bytesReceived = recv(fd, buffer, sizeof(buffer) - 1, 0);
+        //if (bytesReceived <= 0) {
+        //    std::cout << "Client disconnected or error on FD: " << fd << std::endl;
+        //    _pendingFds.push_back(fd);
+        //    //close(fd);
+        //    //poll_fds.erase(poll_fds.begin() + i);
+        //    //--i;
+        //    return;
+        //}
+        //buffer[bytesReceived] = '\0';
+        //fullRequest.append(buffer, bytesReceived);
+        //std::cout << "dbg: size of fullRequest: " << fullRequest.size() << '\n';
+        //if (fullRequest.find("\r\n\r\n") != std::string::npos)
+        //    break;
     }
-    Request requestHandler(fullRequest, fd, servers);
-    close(fd);
-    poll_fds.erase(poll_fds.begin() + i);
-    --i;
+    if (bufferRequest.getBuffer().empty())
+    {
+        _pendingFds.push_back(fd);
+        return ;
+    }
+    Request requestHandler(bufferRequest.getBuffer(), fd, servers);
+    _pendingFds.push_back(fd);
+    //close(fd);
+    //poll_fds.erase(poll_fds.begin() + i);
+    //--i;
 }
 
 static void    setupListeningSocket(const ServerConfig &servers, std::vector<pollfd> *poll_fds, std::vector<ListeningSocket*> *sockets)
@@ -300,16 +343,31 @@ static void    setupListeningSocket(const ServerConfig &servers, std::vector<pol
             pfd.events = POLLIN;
             poll_fds->push_back(pfd);
             sockets->push_back(server);
+
+
+
             std::cout << "Server listening on port " << servers.port[j] << std::endl;
         }
         catch(const std::exception& e)
         {
             Log::error("Failed to set up server on port : " + toString(servers.port[j]) + '\n');
+            exit(1);
         }
     }
 }
 
-void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
+//static void    pollFdsActivity(std::vector<pollfd> &fds)
+//{
+//    for (size_t i = 0; i < fds.size(); i++)
+//    {
+//        std::cout << "fd: " << fds[i].fd
+//                  << "\nevents: " << fds[i].events
+//                  << "\nrevents: " << fds[i].revents
+//                  << '\n';
+//    }
+//}
+
+void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>& servers) {
     std::vector<ListeningSocket*>   sockets;
     std::vector<pollfd>             poll_fds;
 
@@ -319,17 +377,27 @@ void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
         setupListeningSocket(servers[i], &poll_fds, &sockets);
 
     std::cout << "Entering main event loop..." << std::endl;
+    bool flag = true;
     while (true)
     {
-        int activity = poll(&poll_fds[0], poll_fds.size(), -1);
-        if (activity < 0)
+        //pollFdsActivity(poll_fds);
+        //std::vector<pollfd>::iterator   it = poll_fds.begin();
+        //std::cout << "Curr poll_fds:\n";
+        //for (;it != poll_fds.end(); ++it)
+        //    std::cout << "fd: " << it->fd << "\nevents: " << it->events << "\nrevents: " << it->revents << '\n';
+        int activity;
+        do
+        {
+            activity = poll(&poll_fds[0], poll_fds.size(), 350); 
+        } while (activity < 0 && errno == EINTR);
+        if (activity < 0 && !flag)
         {
             Log::error("Poll failed");
             continue;
         }
         for (size_t i = 0; i < poll_fds.size(); ++i)
         {
-            if (poll_fds[i].revents & POLLIN)
+            if (poll_fds[i].revents & POLLIN) // valgrind Conditional jump or move depends on uninitialised value(s)
             {
                 //check if the event is for the listening socket
                 if (isListeningSocket(poll_fds[i].fd, sockets))
@@ -356,6 +424,7 @@ void    handleIncomingConnections(const std::vector<ServerConfig>& servers) {
                     handleClientRequests(poll_fds, i, servers);
             }
         }
+        cleanupPendingFds(poll_fds);
     }
     for (size_t i = 0; i < sockets.size(); ++i)
         delete sockets[i];
@@ -368,4 +437,45 @@ std::string ConfigParser::trailCheck(const std::string  &str)
     if (trail != std::string::npos)
         return (str.substr(0, trail));
     return (str);
+}
+
+int ConfigParser::getRedirectCode(const std::string &line)
+{
+    std::string code;
+    std::string::const_iterator   it = line.begin();
+
+    while (!std::isdigit(*it))
+        ++it;
+    while(std::isdigit(*it))
+    {
+        code += *it;
+        ++it;
+    }
+    return (std::atoi(code.c_str()));
+}
+
+std::string ConfigParser::getRedirectUrl(const std::string &line)
+{
+    std::vector<std::string>    tokens = split(line, ' ');
+    std::string url = tokens.back();
+
+    url = trailCheck(url);
+    return (url);
+}
+
+void    ConfigParser::cleanupPendingFds(std::vector<pollfd> clientFds)
+{
+    std::vector<int>::iterator   itFd = _pendingFds.begin();
+
+    for (;itFd != _pendingFds.end();)
+    {
+        std::vector<pollfd>::iterator itClient = std::find_if(clientFds.begin(), clientFds.end(), MatchFd(*itFd));
+
+        if (itClient != clientFds.end())
+        {
+            close(itClient->fd);
+            clientFds.erase(itClient);
+        }
+        itFd = _pendingFds.erase(itFd);
+    }
 }

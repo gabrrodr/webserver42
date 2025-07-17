@@ -183,6 +183,7 @@ void	Server::handleClientWrite(int fd)
 void	Server::closeClient(int fd)
 {
 	close(fd);
+	std::cout << "dbg: Closing client fd: " << fd << '\n';
 	_clients.erase(fd);
 	for (size_t i = 0; i < _pollFds.size(); i++)
 	{

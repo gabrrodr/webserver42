@@ -136,7 +136,6 @@ void	CGIRequest::initCGIenv()
 std::string	CGIRequest::getRootPath()
 {
 	std::string	workDir = getWorkingDir();
-	std::cout << "workDir: " << workDir << '\n';
 	std::string	root = _location.root;
 	if (root[0] == '.')
 		root.erase(0, 1);
@@ -297,11 +296,39 @@ void	CGIRequest::handleRequest()
 		dup2(_pipeChild[1], STDOUT_FILENO);
 		close(_pipeChild[1]);
 		if (execve(_argv[0], _argv, _envExec) == -1)
-			Log::error("Couln't run cgi script : " + static_cast<std::string>(_argv[0]) + '\n');
+			Log::error("Couldn't run cgi script : " + static_cast<std::string>(_argv[0]) + '\n');
 	}
 	else // parent process
 	{
 		close(_pipeChild[1]);
+		//	send _body to parent read end of pipe
+		//	for further handling of the request
+		//	by the cgi script
+        if (_method == "POST")
+        {
+            int bytesWritten = 0;
+            int bytesRemaining = _body.length();
+            while (bytesRemaining > 0)
+            {
+                int bytesToWrite = std::min(BUFSIZ, bytesRemaining);
+                if (write(_pipeParent[1], _body.c_str() + bytesWritten, bytesToWrite) == -1)
+                {
+					std::cout << "==========\nWRITE FAILED\n==========\n";
+					close(_pipeParent[1]);
+					std::string	response;
+					std::string	header;
+					std::string	content = "Internal Server Error write\n";
+					header += "HTTP/1.1 500 Internal Server Error\r\n";
+					header += "Content-Type: text/html\r\n";
+					header += "Content-Length: " + toString(content.length()) + " \r\n\r\n";
+					//header += "Connection: close\r\n\r\n";
+					response += header + content;
+					send(_client_fd, response.c_str(), response.length(), 0);
+                }
+                bytesWritten += bytesToWrite;
+                bytesRemaining -= bytesToWrite;
+            }
+        }
 		close(_pipeParent[1]);
 		while (true)
 		{
@@ -324,8 +351,18 @@ void	CGIRequest::handleRequest()
 					send(_client_fd, response.c_str(), response.length(), 0);
 				}
 				else
-					return ; // ERROR send error response 500
-				close(_client_fd);
+				{
+					std::string	response;
+					std::string	header;
+					std::string	content = "Internal Server Error THIS\n";
+					header += "HTTP/1.1 500 Internal Server Error\r\n";
+					header += "Content-Type: text/html\r\n";
+					header += "Content-Length: " + toString(content.length()) + " \r\n";
+					header += "Connection: clone\r\n\r\n";
+					response += header + content;
+					send(_client_fd, response.c_str(), response.length(), 0);
+				}
+				//close(_client_fd);
 				break;
 			}
 		}
