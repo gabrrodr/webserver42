@@ -11,18 +11,28 @@ std::vector<ServerConfig>   ConfigParser::parse() {
     std::vector<ServerConfig>   servers;
     std::string line;
     while (std::getline(file, line)) {
+        std::cout << RED << "0 line: " << line << RESET << '\n';
         trim(line);        
+        std::cout << RED << "1 line: " << line << RESET << '\n';
         if (line.empty() || line[0] == '#')
             continue;
+        std::cout << RED << "2 line: " << line << RESET << '\n';
         if (line == "server {") {
             servers.push_back(parseServer(file, line));
         }
-        if (line == "}") {
-            break;
-        }
-        else
+        else if (!line.empty())
             throw std::runtime_error("Unexpected line in configuration (parse): " + line);
+        std::cout << RED << "3 line: " << line << RESET << '\n';
+        //if (line == "}") {
+        //    break;
+        //}
+        //else
+        //    throw std::runtime_error("Unexpected line in configuration (parse): " + line);
+        //std::cout << RED << "4 line: " << line << RESET << '\n';
     }
+    std::vector<ServerConfig>::iterator it = servers.begin();
+    for (;it != servers.end(); ++it)
+        std::cout << RED << "server: " << it->server_name << RESET << '\n';
     return servers;
 }
 
@@ -130,6 +140,7 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
     while (std::getline(file, line))
     {
         trim(line);
+        std::cout << RED << "line location: " << line << RESET << '\n';
         if (line == "}")
             break;
         if (line.empty() || line[0] == '#')
