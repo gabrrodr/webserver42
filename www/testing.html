@@ -20,16 +20,23 @@
   <label for="body">Request Body (for POST):</label>
   <textarea id="body" placeholder='{"key":"value"}'></textarea>
 
-  <button onclick="sendRequest('GET')">GET</button>
-  <button onclick="sendRequest('POST')">POST</button>
-  <button onclick="sendRequest('DELETE')">DELETE</button>
+  <label for="method">Method:</label>
+  <select id="method">
+    <option>GET</option>
+    <option>POST</option>
+    <option>DELETE</option>
+    <option>PUT</option>
+  </select>
 
+  <button onclick="sendRequest()">Send Request</button>
+  
   <div id="response">Response will appear here...</div>
 
   <script>
-    async function sendRequest(method) {
+    async function sendRequest() {
       const url = document.getElementById('url').value;
       const body = document.getElementById('body').value;
+      const method = document.getElementById('method').value;
       const responseBox = document.getElementById('response');
 
       try {
@@ -39,16 +46,16 @@
             'Content-Type': 'application/json'
           }
         };
-        if (method === 'POST') {
+        if (method === 'POST' || method === 'PUT') {
           options.body = body;
         }
-
+      
         const response = await fetch(url, options);
         const text = await response.text();
-        responseBox.textContent = `Status: ${response.status}\n\n${text}`;
+        responseBox.textContent = `Status: ${response.status} ${response.statusText}\n\nHeaders:\n${[...response.headers].map(([k,v])=>k+': '+v).join('\n')}\n\nBody:\n${text}`;
       } catch (err) {
         responseBox.textContent = `Error: ${err}`;
-      }
+  }
     }
   </script>
 </body>

@@ -290,6 +290,7 @@ void	CGIRequest::handleRequest()
 {
 	int	status;
 	pid_t	pid;
+	clock_t	start = getTime();
 
 	if (open(_scriptPath.c_str(), F_OK) == -1)	
 		return ; // ERROR SCRIPT, send error response
@@ -311,6 +312,7 @@ void	CGIRequest::handleRequest()
 	}
 	else // parent process
 	{
+		bool	timeOutFlag = false;
 		close(_pipeChild[1]);
 		//	send _body to parent read end of pipe
 		//	for further handling of the request
@@ -343,8 +345,15 @@ void	CGIRequest::handleRequest()
 		close(_pipeParent[1]);
 		while (true)
 		{
+			clock_t	currTime = getTime();
+			double elapsed	= currTime - start;
+			std::cout << YELLOW << "TIME ELAPSED: " << elapsed << RESET << '\n';
+			if (elapsed > 5.0)
+			{
+				timeOutFlag = true;
+				break ;
+			}
 			pid_t	res = waitpid(pid, &status, WNOHANG); // monitor child process while not blocking execution of parent process
-			
 			if (res == 0) // child process still running
 			{
 				usleep(1000);
@@ -373,10 +382,66 @@ void	CGIRequest::handleRequest()
 					response += header + content;
 					send(_client_fd, response.c_str(), response.length(), 0);
 				}
-				//close(_client_fd);
+				close(_client_fd);
 				break;
 			}
 		}
+		if (timeOutFlag)
+		{
+			kill(pid, SIGKILL);
+			sendErrorResponse(_client_fd, TIMEOUT, _config.error_page);
+		}
 		close(_pipeChild[0]);
+	}
+}
+
+void	CGIRequest::sendErrorResponse(int fd, int code, std::map<int, std::string> errorPages)
+{
+	if (errorPages.find(code) != errorPages.end())
+	{
+		std::string	path = _location.root + errorPages[code];
+		std::ifstream	file(path.c_str());
+		std::cout << "Sending error page from file: " << path << "\n";
+		if (file.is_open())
+		{
+			std::stringstream	buffer;
+			buffer << file.rdbuf();
+			std::string	content = buffer.str();
+			std::string	header =
+			"HTTP/1.1 " + toString(code) + " OK\r\n" +
+			"Content-Type: text/html; charset=UTF-8\r\n" +
+			"Content-Length: " + toString(content.length()) + "\r\n" +
+			"Connection: close\r\n\r\n";
+			send(fd, header.c_str(), header.length(), 0);
+			send(fd, content.c_str(), content.length(), 0);
+			file.close();
+		}
+	}
+	else
+	{
+		std::pair<std::string, std::string>	reasonAndMessage;
+		int	status_code;
+		reasonAndMessage = setReasonAndMessage(code);
+		
+		if (code == 500)
+			status_code = 500;
+		else if (code == 504)
+			status_code = 504;
+		else
+			status_code = code;
+		std::string	response =
+		"<html><head><title>"
+		+ toString(status_code) + " " + reasonAndMessage.first +
+		"</title></head>" +
+		"<body><h1>" + reasonAndMessage.first + "</h1><br><br><p>" +
+		reasonAndMessage.second +
+		"</body></html>";
+		std::string	header = 
+		"HTTP/1.1 " + toString(status_code) + " " + reasonAndMessage.first + "\r\n"
+		"Content-Type: text/html; charset=UTF-8\r\n" +
+		"Content-Length: " + toString(response.length()) + "\r\n" +
+		"Connection: close\r\n\r\n";
+		send(fd, header.c_str(), header.length(), 0);
+		send(fd, response.c_str(), response.length(), 0);
 	}
 }

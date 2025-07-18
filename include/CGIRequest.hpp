@@ -6,6 +6,8 @@
 #include <map>
 #include <algorithm>
 #include <sys/wait.h>
+#include <sys/time.h>
+#include <ctime>
 #include "Request.hpp"
 
 class Request;
@@ -31,6 +33,7 @@ class CGIRequest
 		void	initCGIenv();
 		void	initCGIExecEnv();
 		void	handleRequest();
+		void	sendErrorResponse(int fd, int code, std::map<int, std::string> errorPages);
 
 	private:
 		// from request
