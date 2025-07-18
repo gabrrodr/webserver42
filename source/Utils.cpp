@@ -69,3 +69,61 @@ std::string customTrailCheck(const std::string  &str, char c)
         return (str.substr(0, trail));
     return (str);
 }
+
+double getTime()
+{
+    struct timeval  tv;
+
+    if (gettimeofday(&tv, NULL))
+        throw   std::runtime_error("Failed to get time of day.\n");
+    return (tv.tv_sec + (tv.tv_usec / 1e6));
+}
+
+std::pair<std::string, std::string>	setReasonAndMessage(int code)
+{
+	std::pair<std::string, std::string>	res;
+    switch (code)
+    {
+    	case 404:
+    	    res.first = "Not Found";
+    	    res.second = "The requested resource was not found on this server.";
+    	    break;
+    	case 405:
+    	    res.first = "Method Not Allowed";
+    	    res.second = "Method isn't allowed here.";
+    	    break;
+    	case 403:
+    	    res.first = "Forbidden";
+    	    res.second ="You do not have permission to access the requested resource.";
+    	    break;
+    	case 400:
+    	    res.first = "Bad Request";
+    	    res.second = "The server could not understand the request due to invalid syntax.";
+    	    break;
+    	case 401:
+    	    res.first = "Unauthorized";
+    	    res.second = "Authentication is required and has failed or has not yet been provided.";
+    	    break;
+    	case 409:
+    	    res.first = "Conflict";
+    	    res.second = "The request could not be completed due to a conflict with the current state of the resource.";
+    	    break;
+    	case 413:
+    	    res.first = "Content Too Large";
+    	    res.second = "Maximum allowed upload size exceeded.";
+    	    break;
+    	case 500:
+    	    res.first = "Internal Server Error";
+    	    res.second = "The server encountered an internal error and was unable to complete your request.";
+    	    break;
+    	case 504:
+    	    res.first = "Gateway Timeout";
+    	    res.second = "The server, while acting as a gateway or proxy, did not receive a timely response from the upstream server.";
+    	    break;
+    	default:
+    	    res.first = "Internal Server Error";
+    	    res.second = "An internal server error occurred.";
+    	    break;
+    }
+	return (res);
+}

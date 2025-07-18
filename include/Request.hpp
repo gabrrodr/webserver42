@@ -2,6 +2,16 @@
 #ifndef	REQUEST_HPP
 #define	REQUEST_HPP
 
+#define NOT_FOUND 404
+#define FORBIDDEN 403
+#define BAD_REQUEST 400
+#define UNAUTHORIZED 401
+#define CONFLICT 409
+#define LARGE_PAYLOAD 413
+#define INTERNAL_SERVER 500
+#define TIMEOUT 504
+#define METH_NOT_ALLOWED 405
+
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -35,8 +45,10 @@ class Request
 		void	setContentType();
 		void	setHeader(int code);
 		void	cleanPath();
+		bool	payloadCheck(long unsigned int max_body_size);
 		void	setConfig(const std::vector<ServerConfig> &servers);
 		void	sendFullResponse(int fd, const std::string &response);
+		void	sendErrorResponse(int fd, int code, std::map<int, std::string> errorPages);
 		void	setRedirectResponse();
 		const std::string	&getMethod() const;
 		const std::string	&getUri() const;

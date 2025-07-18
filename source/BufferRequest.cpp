@@ -23,9 +23,9 @@ BufferRequest::BufferRequest(): _isOver(false), _currLength(0), _contentLength(0
 
 BufferRequest::~BufferRequest(void) {}
 
-void	BufferRequest::appendBuffer(const std::string &buffer, size_t size)
+void	BufferRequest::appendBuffer(const char *buffer, size_t size)
 {
-	_buffer.append(buffer.c_str(), size);
+	_buffer.append(buffer, size);
 	if (!_contentLength)
 		setContentLength();
 	finishRequest();

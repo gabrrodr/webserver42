@@ -44,15 +44,8 @@ std::vector<std::string>    ConfigParser::split(const std::string& str, char del
     return tokens;
 }
 
-size_t  ConfigParser::parseSize(const std::string& str) {
-    size_t size = std::atoi(str.c_str());
-    char lastChar = str[str.length() - 1];
-        if (lastChar == 'M') {    
-            size *= 1024 * 1024;
-        } else if (lastChar == 'K') {
-            size *= 1024;
-        }
-        return size;
+int  ConfigParser::parseSize(const std::string& str) {
+    return (std::atoi(str.c_str()));
 }
 
 void        ConfigParser::parseRoot(const std::string& line, Location& server) {
@@ -144,7 +137,7 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
             server.error_page[errorCode] = errorPath;
         }
         else if (line.find("client_max_body_size ") == 0)
-            server.client_max_body_size = parseSize(line.substr(22));
+            server.client_max_body_size = parseSize(line.substr(21));
         else if (isPartofLocation(line))
             parseLocation(file);
         else if (line.find("location ") == 0)
@@ -242,33 +235,6 @@ Location    ConfigParser::parseLocation(std::ifstream& file) {
     return location;
 }
 
-//set up listening sockets (server sockets)
-//using poll() to handle multiple connections and monitor server and client sockets
-//are new connections accepted and stored correctly?
-//client sockets handled after connection (just accepted for now)
-//memory leaks?
-//can the loop handle multiple connections simultaneously?
-//making sockets non-blocking using fcntl
-//socket set up and connection handling in different functions!!
-//keep a list of active sockets
-
-/*
--this is doing nothing.divide handleIncomingConnections into two functions at least and use this
-
-void    setupServerSockets(const std::vector<ServerConfig>& servers) {
-    std::vector<ListeningSocket*>   serverSockets;
-    for (size_t i = 0; i < servers.size(); ++i) {
-        try {
-            ListeningSocket* server = new ListeningSocket(AF_INET, SOCK_STREAM, 0, servers[i].port, INADDR_ANY, 10);
-            serverSockets.push_back(server);
-
-            std::cout << "Server listening on port " << servers[i].port << std::endl;
-        } catch (std::exception& e) {
-            Log::error("Failed to set up server on port (set up server socket): " + std::to_string(servers[i].port) + " " + e.what());
-        }
-    }
-}*/
-
 ssize_t readRequest(int fd, char *buffer, size_t bufferSize)
 {
     ssize_t n = recv(fd, buffer, bufferSize, 0);
@@ -286,9 +252,14 @@ void    ConfigParser::handleClientRequests(std::vector<pollfd>& poll_fds, size_t
     int fd = poll_fds[i].fd;
     std::string fullRequest;
     BufferRequest   bufferRequest;
+    clock_t start = getTime();
 
     while (!bufferRequest.requestOver())
     {
+        clock_t currTime = getTime();
+        double  elapsed = currTime - start;
+        if (elapsed > 5.0)
+            break;
         std::memset(buffer, 0, sizeof(buffer));
         ssize_t n = readRequest(fd, buffer, sizeof(buffer));
         if (n < 0)
@@ -297,21 +268,6 @@ void    ConfigParser::handleClientRequests(std::vector<pollfd>& poll_fds, size_t
             break;
         }
         bufferRequest.appendBuffer(buffer, n);
-
-        //int bytesReceived = recv(fd, buffer, sizeof(buffer) - 1, 0);
-        //if (bytesReceived <= 0) {
-        //    std::cout << "Client disconnected or error on FD: " << fd << std::endl;
-        //    _pendingFds.push_back(fd);
-        //    //close(fd);
-        //    //poll_fds.erase(poll_fds.begin() + i);
-        //    //--i;
-        //    return;
-        //}
-        //buffer[bytesReceived] = '\0';
-        //fullRequest.append(buffer, bytesReceived);
-        //std::cout << "dbg: size of fullRequest: " << fullRequest.size() << '\n';
-        //if (fullRequest.find("\r\n\r\n") != std::string::npos)
-        //    break;
     }
     if (bufferRequest.getBuffer().empty())
     {
@@ -320,9 +276,6 @@ void    ConfigParser::handleClientRequests(std::vector<pollfd>& poll_fds, size_t
     }
     Request requestHandler(bufferRequest.getBuffer(), fd, servers);
     _pendingFds.push_back(fd);
-    //close(fd);
-    //poll_fds.erase(poll_fds.begin() + i);
-    //--i;
 }
 
 void    ConfigParser::setupListeningSocket(const ServerConfig &servers, std::vector<pollfd> *poll_fds, std::vector<ListeningSocket*> *sockets)
@@ -349,17 +302,6 @@ void    ConfigParser::setupListeningSocket(const ServerConfig &servers, std::vec
     }
 }
 
-//static void    pollFdsActivity(std::vector<pollfd> &fds)
-//{
-//    for (size_t i = 0; i < fds.size(); i++)
-//    {
-//        std::cout << "fd: " << fds[i].fd
-//                  << "\nevents: " << fds[i].events
-//                  << "\nrevents: " << fds[i].revents
-//                  << '\n';
-//    }
-//}
-
 void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>& servers) {
     std::vector<ListeningSocket*>   sockets;
     std::vector<pollfd>             poll_fds;
@@ -372,11 +314,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
     std::cout << "Entering main event loop..." << std::endl;
     while (!endFlag)
     {
-        //pollFdsActivity(poll_fds);
-        //std::vector<pollfd>::iterator   it = poll_fds.begin();
-        //std::cout << "Curr poll_fds:\n";
-        //for (;it != poll_fds.end(); ++it)
-        //    std::cout << "fd: " << it->fd << "\nevents: " << it->events << "\nrevents: " << it->revents << '\n';
+
         int activity;
         do
         {
@@ -389,7 +327,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
         }
         for (size_t i = 0; i < poll_fds.size(); ++i)
         {
-            if (poll_fds[i].revents & POLLIN) // valgrind Conditional jump or move depends on uninitialised value(s)
+            if (poll_fds[i].revents & POLLIN)
             {
                 //check if the event is for the listening socket
                 if (isListeningSocket(poll_fds[i].fd, sockets))

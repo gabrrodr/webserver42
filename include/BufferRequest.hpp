@@ -11,7 +11,7 @@ class   BufferRequest
 		BufferRequest(void);
 		~BufferRequest(void);
 		
-		void	appendBuffer(const std::string &buffer, size_t size);
+		void	appendBuffer(const char *buffer, size_t size);
 
 		std::string	&getBuffer(void);
 		size_t	getContentLength(void) const;

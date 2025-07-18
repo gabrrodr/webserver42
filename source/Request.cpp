@@ -118,19 +118,19 @@ bool	methodIsAllowed(std::string &method, std::vector<std::string> &vec)
 	return (false);
 }	
 
+bool	Request::payloadCheck(long unsigned int max_body_size) { return (_body.size() > max_body_size); }
+
 void	Request::handleRequest()
 {
-	//_response.clear();
-	//_header.clear();
-	//_content.clear();
 	struct stat	pathInfo;
 
 	std::string autoIndexBool = _location.autoindex == true ? "true" : "false";
 
-	//std::cout << "Current Request:\n" << _method << " " << _uri << " " << _protocol << "\nPath: " << _path 
-	//		  << "\nlocation: " << _location.url
-	//		  << "\nautoindex: " << autoIndexBool
-	//		  << "\n";
+	if (payloadCheck(_config.client_max_body_size))
+	{
+		sendErrorResponse(_fd, LARGE_PAYLOAD, _config.error_page);
+		return ;
+	}
 	if (!_location.redirect.second.empty())
 	{
 		setRedirectResponse();
@@ -140,18 +140,23 @@ void	Request::handleRequest()
 	if (!methodIsAllowed(_method, _location.methods))
 	{
 		Log::error("Method isn't allowed in this location.\n");
-		setErrorResponse(405);
+		sendErrorResponse(_fd, METH_NOT_ALLOWED, _config.error_page);
 		return ;
 	}
 	if (stat(_path.c_str(), &pathInfo) != 0)
 	{
 		std::cout << "dbg: " << _path << " does not exist\n";
-		setErrorResponse(404);
-		sendFullResponse(_fd, _response);
+		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
+		//sendFullResponse(_fd, _response);
 		return ;
 	}
 	if (S_ISDIR(pathInfo.st_mode) && _location.autoindex)
 		handleAutoIndexResponse();
+	else if (S_ISDIR(pathInfo.st_mode))
+	{
+		sendErrorResponse(_fd, FORBIDDEN, _config.error_page);
+		return ;
+	}
 	else if (isCGIRequest(_uri) && !S_ISDIR(pathInfo.st_mode))
 	{
 		std::cout << "dbg: CGI\n";
@@ -175,6 +180,57 @@ void	Request::handleRequest()
 	{
 		std::cout << "dbg: DELETE\n"; 
 		deleteRequest();
+	}
+}
+
+void	Request::sendErrorResponse(int fd, int code, std::map<int, std::string> errorPages)
+{
+	if (errorPages.find(code) != errorPages.end())
+	{
+		std::string	path = _location.root + errorPages[code];
+		std::ifstream	file(path.c_str());
+		std::cout << "Sending error page from file: " << path << "\n";
+		if (file.is_open())
+		{
+			std::stringstream	buffer;
+			buffer << file.rdbuf();
+			std::string	content = buffer.str();
+			std::string	header =
+			"HTTP/1.1 " + toString(code) + " OK\r\n" +
+			"Content-Type: text/html; charset=UTF-8\r\n" +
+			"Content-Length: " + toString(content.length()) + "\r\n" +
+			"Connection: close\r\n\r\n";
+			send(fd, header.c_str(), header.length(), 0);
+			send(fd, content.c_str(), content.length(), 0);
+			file.close();
+		}
+	}
+	else
+	{
+		std::pair<std::string, std::string>	reasonAndMessage;
+		int	status_code;
+		reasonAndMessage = setReasonAndMessage(code);
+		
+		if (code == 500)
+			status_code = 500;
+		else if (code == 504)
+			status_code = 504;
+		else
+			status_code = code;
+		std::string	response =
+		"<html><head><title>"
+		+ toString(status_code) + " " + reasonAndMessage.first +
+		"</title></head>" +
+		"<body><h1>" + reasonAndMessage.first + "</h1><br><br><p>" +
+		reasonAndMessage.second +
+		"</body></html>";
+		std::string	header = 
+		"HTTP/1.1 " + toString(status_code) + " " + reasonAndMessage.first + "\r\n"
+		"Content-Type: text/html; charset=UTF-8\r\n" +
+		"Content-Length: " + toString(response.length()) + "\r\n" +
+		"Connection: close\r\n\r\n";
+		send(fd, header.c_str(), header.length(), 0);
+		send(fd, response.c_str(), response.length(), 0);
 	}
 }
 
@@ -229,7 +285,8 @@ void	Request::postRequest() {
 	if (!file.is_open())
 	{
 		Log::error("Failed to open file for writing.");
-		setErrorResponse(500);
+		sendErrorResponse(_fd, INTERNAL_SERVER, _config.error_page);
+		//setErrorResponse(500);
 	}
 	else {
 		file << _body << '\n';
@@ -252,13 +309,15 @@ void 	Request::deleteRequest() {
 	check.close();
 	if (!fileExists) {
 		Log::error("Failed to find file for deletion.");
-		setErrorResponse(404);
+		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
+		//setErrorResponse(404);
 		return;
 	}
 	std::ofstream file(_path.c_str());
 	if (!file.is_open()) {
 		Log::error("Failed to open file for deletion.");
-		setErrorResponse(500);
+		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
+		//setErrorResponse(500);
 		return;
 	} else {
 		_contentLength = 0;
@@ -292,8 +351,9 @@ void	Request::getRequest()
 	
 	if (!file)
 	{
-		std::cout << "HERE\n";
-		setErrorResponse(404);
+		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
+		//setErrorResponse(404);
+		return ;
 	}
 	else
 	{
