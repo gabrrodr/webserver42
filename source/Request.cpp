@@ -4,26 +4,20 @@
 
 Request::Request(const std::string& fullRequest, int fd, const std::vector<ServerConfig> &servers)
 {
-	//std::cout << "\n======================================\nFULL REQUEST\n" << fullRequest << "======================================\n";
 	_fullRequest = fullRequest;
 	std::stringstream	ss(fullRequest);
 	_fullRequest = fullRequest;
 	ss >> _method >> _uri >> _protocol;
-    //std::cout << "Request constructed.\nMethod: " << _method << ", URI: " << _uri << ", Protocol: " << _protocol << "\n\n";
 	setConfig(servers);
 	_location = getLocation(*this, _config.locations);
 	setPath();
 	cleanPath();
 	size_t bodyStart = fullRequest.find("\r\n\r\n");
-	if (bodyStart != std::string::npos /*&& _method != "DELETE"*/) {
+	if (bodyStart != std::string::npos) {
 		_body = fullRequest.substr(bodyStart + 4);
-		//std::cout << "Body: " << _body << "\nbody size: " << _body.size() << /*std::hex <<*/std::endl;
-		//std::cout << "fullRequest:\n" << fullRequest << '\n';
 	} else {
 		std::cout << "No body found in request.\n";
 	}
-	
-	//std::cout << "BODY ON REQUEST = " << _body << "\nsize of: " << _body.size() << '\n';
 	_fd = fd;
 	if (DEBUG)
 	{
@@ -82,13 +76,6 @@ void Request::sendFullResponse(int fd, const std::string &response)
     }
     if (totalSent < responseLength)
         Log::error("Response not fully send. Sent: " + toString(totalSent) + " of " + toString(responseLength));
-	else {
-		size_t headerEnd = response.find("\r\n\r\n");
-		if (headerEnd != std::string::npos)
-		{
-			std::cout << response.substr(0, headerEnd + 4) << "\n[Body omitted]\n";
-		}
-	}
 }
 
 // utils
@@ -118,7 +105,10 @@ bool	methodIsAllowed(std::string &method, std::vector<std::string> &vec)
 	return (false);
 }	
 
-bool	Request::payloadCheck(long unsigned int max_body_size) { return (_body.size() > max_body_size); }
+bool	Request::payloadCheck(long unsigned int max_body_size)
+{
+	return (_body.size() > max_body_size);
+}
 
 void	Request::handleRequest()
 {
@@ -126,6 +116,43 @@ void	Request::handleRequest()
 
 	std::string autoIndexBool = _location.autoindex == true ? "true" : "false";
 
+	if (!_location.redirect.second.empty())
+	{
+		setRedirectResponse();
+		sendFullResponse(_fd, _response);
+	}
+	else if (stat(_path.c_str(), &pathInfo) != 0)
+	{
+		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
+	}
+	else if (!methodIsAllowed(_method, _location.methods))
+	{
+		sendErrorResponse(_fd, METH_NOT_ALLOWED, _config.error_page);
+	}
+	else
+	{
+		if (isCGIRequest(_uri) && !S_ISDIR(pathInfo.st_mode))
+			cgiRequest();
+		else if (_method == "GET")
+		{
+			if (S_ISDIR(pathInfo.st_mode) && _location.autoindex)
+				handleAutoIndexResponse();
+			else if (S_ISDIR(pathInfo.st_mode))
+				sendErrorResponse(_fd, FORBIDDEN, _config.error_page);
+			else
+				getRequest();
+		}
+		else if (_method == "POST")
+		{
+			if (payloadCheck(_config.client_max_body_size))
+				sendErrorResponse(_fd, LARGE_PAYLOAD, _config.error_page);
+			else
+				postRequest();
+		}
+		else if (_method == "DELETE")
+			deleteRequest();
+	}
+	/*
 	if (payloadCheck(_config.client_max_body_size))
 	{
 		sendErrorResponse(_fd, LARGE_PAYLOAD, _config.error_page);
@@ -137,9 +164,10 @@ void	Request::handleRequest()
 		sendFullResponse(_fd, _response);
 		return ;
 	}
-	if (!methodIsAllowed(_method, _location.methods))
+	if (!methodIsAllowed(_method, _location.methods, _location.url))
 	{
-		Log::error("Method isn't allowed in this location.\n");
+
+		Log::error("Method " + _method + " isn't allowed in this location.\n");
 		sendErrorResponse(_fd, METH_NOT_ALLOWED, _config.error_page);
 		return ;
 	}
@@ -181,6 +209,7 @@ void	Request::handleRequest()
 		std::cout << "dbg: DELETE\n"; 
 		deleteRequest();
 	}
+		*/
 }
 
 void	Request::sendErrorResponse(int fd, int code, std::map<int, std::string> errorPages)
@@ -189,7 +218,6 @@ void	Request::sendErrorResponse(int fd, int code, std::map<int, std::string> err
 	{
 		std::string	path = _location.root + errorPages[code];
 		std::ifstream	file(path.c_str());
-		std::cout << "Sending error page from file: " << path << "\n";
 		if (file.is_open())
 		{
 			std::stringstream	buffer;
@@ -244,7 +272,6 @@ void	Request::handleFileUpload() {
 	size_t filenameStart = filenamePos + 10;
 	size_t filenameEnd = _body.find("\"", filenameStart);
 	_filename = _body.substr(filenameStart, filenameEnd - filenameStart);	
-	
 	//now the content type
 	size_t contentTypePos = _body.find("Content-Type: ");
 	if (contentTypePos == std::string::npos) {
@@ -270,36 +297,41 @@ void	Request::handleFileUpload() {
 	}
 	file.write(_content.c_str(), _content.length());
 	file.close();
-
 	std::cout << "File uploaded successfully.\n";
-
 }
 
-void	Request::postRequest() {
-	//second parameter is because if it exists you should be appending
+void	Request::postRequest()
+{
 	_path = _location.root + _location.upload_dir + "/upload.txt";
-	std::ifstream check(_path.c_str());
-	bool fileExists = check.is_open();
-	check.close();
-	std::ofstream file(_path.c_str(), std::ios::app);
-	if (!file.is_open())
+	if (_location.upload_dir.empty())
 	{
-		Log::error("Failed to open file for writing.");
-		sendErrorResponse(_fd, INTERNAL_SERVER, _config.error_page);
-		//setErrorResponse(500);
+		Log::message("Can't post, upload_dir is empty in this location.\n");
 	}
-	else {
-		file << _body << '\n';
-		file.close();
-		std::cout << "File written successfully.\n";
-		_contentLength = _body.length();
-		setContentType();
-		if (fileExists) {
-			setHeader(200); }
+	else
+	{
+		std::ifstream check(_path.c_str());
+		bool fileExists = check.is_open();
+		check.close();
+		std::ofstream file(_path.c_str(), std::ios::app);
+		if (!file.is_open())
+		{
+			Log::error("Failed to open file for writing.");
+			sendErrorResponse(_fd, INTERNAL_SERVER, _config.error_page);
+			//setErrorResponse(500);
+		}
 		else {
-			setHeader(201); }
-		sendFullResponse(_fd, _header);
-		std::cout << "Response sent successfully.\n";
+			file << _body << '\n';
+			file.close();
+			std::cout << "File written successfully.\n";
+			_contentLength = _body.length();
+			setContentType();
+			if (fileExists) {
+				setHeader(200); }
+			else {
+				setHeader(201); }
+			sendFullResponse(_fd, _header);
+			std::cout << "Response sent successfully.\n";
+		}
 	}
 }
 
@@ -413,7 +445,7 @@ void	Request::setContentType()
     else
 	{
 		_contentType = "";
-        Log::error("Unknown type: " + _path + '\n'); // added to see what the tester might send through here
+        //Log::error("Unknown type: " + _path + '\n'); // added to see what the tester might send through here
 	}
 }
 
