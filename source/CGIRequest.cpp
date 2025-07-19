@@ -326,7 +326,6 @@ void	CGIRequest::handleRequest()
                 int bytesToWrite = std::min(BUFSIZ, bytesRemaining);
                 if (write(_pipeParent[1], _body.c_str() + bytesWritten, bytesToWrite) == -1)
                 {
-					std::cout << "==========\nWRITE FAILED\n==========\n";
 					close(_pipeParent[1]);
 					std::string	response;
 					std::string	header;
@@ -347,7 +346,6 @@ void	CGIRequest::handleRequest()
 		{
 			clock_t	currTime = getTime();
 			double elapsed	= currTime - start;
-			std::cout << YELLOW << "TIME ELAPSED: " << elapsed << RESET << '\n';
 			if (elapsed > 5.0)
 			{
 				timeOutFlag = true;
@@ -401,7 +399,6 @@ void	CGIRequest::sendErrorResponse(int fd, int code, std::map<int, std::string> 
 	{
 		std::string	path = _location.root + errorPages[code];
 		std::ifstream	file(path.c_str());
-		std::cout << "Sending error page from file: " << path << "\n";
 		if (file.is_open())
 		{
 			std::stringstream	buffer;

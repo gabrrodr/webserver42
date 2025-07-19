@@ -4,52 +4,23 @@
 #include "../include/Log.hpp"
 #include "../include/Config.hpp"
 
-// Configurable launch- check
-// default config generator (--generate creates a default config file)
-// Parsing/Errorr handling - try catch handle configParser. 
-// Handle incoming connections entry point for server loop
-/*to do:
-    - log::error() prints to stderr?
-    - handles warnings and fatal errors?
-    - flush logs immediately?
-    */
-void    write_line(std::ofstream &file, const std::string &line) {
-    file << line << std::endl;
-}
+bool    configExists(std::string str)
+{
+    std::ifstream   file(str.c_str());
+    struct stat fileInfo;
 
-void    generate_file() {
-    std::string path = "./example.conf";
-    std::ofstream   file;
-
-    file.open(path.c_str(), std::ios::out);
-    if (!file.is_open()) {
-        Log::error("parser error: Could not open file\n " + path);
-        exit(1) ;
+    stat(str.c_str(), &fileInfo);
+    if (!file.is_open())
+    {
+        Log::error("Invalid configuration file.");
+        return (false);
     }
-    write_line(file, "server {");
-    write_line(file, "\tlisten 8080");
-    write_line(file, "\tserver_name localhost");
-    write_line(file, "\tlocation / {");
-    write_line(file, "\t\troot www/");
-    write_line(file, "\t\tindex index.html");
-    write_line(file, "\t}");
-    write_line(file, "\tlocation / {");
-    write_line(file, "\t\tmethods GET");
-    write_line(file, "\t}");
-    write_line(file, "\tlocation / {");
-    write_line(file, "\t\tmethods POST");
-    write_line(file, "\t}");
-    write_line(file, "}");
-    std::cout << "Config file generated at: " << path << std::endl;
-    exit(0);
-}
-
-int    help(char **argv) {
-    if (argv[1] && (!std::strcmp(argv[1], "--generate"))) {
-        generate_file();
-        return (1);
+    else if (S_ISDIR(fileInfo.st_mode))
+    {
+        Log::error("Configuration file can't be a directory.");
+        return (false);
     }
-    return (0);
+    return (true);
 }
 
 int main(int argc, char **argv, char **env)
@@ -59,12 +30,10 @@ int main(int argc, char **argv, char **env)
     (void)env;
     if (argc != 2) {
         Log::error("❌ Invalid usage!\n"
-            "Usage: ./webserv [configuration file]\n"
-            "Options:\n"
-            "  --generate\tGenerate a default configuration file");
+            "Usage: ./webserv [configuration file]");
         return (1);
     }
-    if (!help(argv) && argc == 2) {
+    if (argc == 2 && configExists(argv[1])) {
         try {
             ConfigParser    parser(argv[1]);
             std::vector<ServerConfig>   servers = parser.parse();

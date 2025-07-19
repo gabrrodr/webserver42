@@ -334,7 +334,8 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
                 {           
                     struct sockaddr_in  clientAddress;
                     socklen_t           clientAddressLength = sizeof(clientAddress);
-                    std::cout << "Incoming connection detected on socket..." << poll_fds[i].fd << std::endl;        
+                    if (DEBUG)
+                        std::cout << "Incoming connection detected on socket..." << poll_fds[i].fd << std::endl;        
                     int clientSocket = accept(poll_fds[i].fd, (struct sockaddr*)&clientAddress, &clientAddressLength);
                     if (clientSocket < 0)
                     {
@@ -343,7 +344,8 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
                         Log::error("Failed to accept incoming connection ");
                         continue;
                     }
-                std::cout << "New client connected! FD:" << clientSocket << std::endl;
+                if (DEBUG)
+                    std::cout << "New client connected! FD:" << clientSocket << std::endl;
                 fcntl(clientSocket, F_SETFL, O_NONBLOCK);
                 pollfd  client_fd;
                 client_fd.fd = clientSocket;

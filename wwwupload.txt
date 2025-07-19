@@ -1,3 +1,140 @@
-asddsad
-asddsad
-asddsad
+
+==27567== 
+==27567== HEAP SUMMARY:
+==27567==     in use at exit: 872 bytes in 27 blocks
+==27567==   total heap usage: 151,897 allocs, 151,870 frees, 21,970,926 bytes allocated
+==27567== 
+==27567== 43 bytes in 1 blocks are definitely lost in loss record 1 of 3
+==27567==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27567==    by 0x4BD035E: strdup (strdup.c:42)
+==27567==    by 0x126B98: CGIRequest::initCGIenv() (CGIRequest.cpp:134)
+==27567==    by 0x1251B7: CGIRequest::CGIRequest(Request&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int) (CGIRequest.cpp:24)
+==27567==    by 0x11FFD6: Request::cgiRequest() (Request.cpp:281)
+==27567==    by 0x11EDDB: Request::handleRequest() (Request.cpp:159)
+==27567==    by 0x11E01D: Request::Request(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Request.cpp:61)
+==27567==    by 0x11309D: ConfigParser::handleClientRequests(std::vector<pollfd, std::allocator<pollfd> >&, unsigned long&, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:321)
+==27567==    by 0x11398E: ConfigParser::handleIncomingConnections(std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:416)
+==27567==    by 0x10E55B: main (main.cpp:100)
+==27567== 
+==27567== 43 bytes in 1 blocks are definitely lost in loss record 2 of 3
+==27567==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27567==    by 0x4BD035E: strdup (strdup.c:42)
+==27567==    by 0x126BC6: CGIRequest::initCGIenv() (CGIRequest.cpp:135)
+==27567==    by 0x1251B7: CGIRequest::CGIRequest(Request&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int) (CGIRequest.cpp:24)
+==27567==    by 0x11FFD6: Request::cgiRequest() (Request.cpp:281)
+==27567==    by 0x11EDDB: Request::handleRequest() (Request.cpp:159)
+==27567==    by 0x11E01D: Request::Request(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Request.cpp:61)
+==27567==    by 0x11309D: ConfigParser::handleClientRequests(std::vector<pollfd, std::allocator<pollfd> >&, unsigned long&, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:321)
+==27567==    by 0x11398E: ConfigParser::handleIncomingConnections(std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:416)
+==27567==    by 0x10E55B: main (main.cpp:100)
+==27567== 
+==27567== 786 bytes in 25 blocks are definitely lost in loss record 3 of 3
+==27567==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27567==    by 0x4BD035E: strdup (strdup.c:42)
+==27567==    by 0x1259C1: CGIRequest::initCGIExecEnv() (CGIRequest.cpp:68)
+==27567==    by 0x1251C6: CGIRequest::CGIRequest(Request&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int) (CGIRequest.cpp:25)
+==27567==    by 0x11FFD6: Request::cgiRequest() (Request.cpp:281)
+==27567==    by 0x11EDDB: Request::handleRequest() (Request.cpp:159)
+==27567==    by 0x11E01D: Request::Request(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Request.cpp:61)
+==27567==    by 0x11309D: ConfigParser::handleClientRequests(std::vector<pollfd, std::allocator<pollfd> >&, unsigned long&, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:321)
+==27567==    by 0x11398E: ConfigParser::handleIncomingConnections(std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:416)
+==27567==    by 0x10E55B: main (main.cpp:100)
+==27567== 
+==27567== LEAK SUMMARY:
+==27567==    definitely lost: 872 bytes in 27 blocks
+==27567==    indirectly lost: 0 bytes in 0 blocks
+==27567==      possibly lost: 0 bytes in 0 blocks
+==27567==    still reachable: 0 bytes in 0 blocks
+==27567==         suppressed: 0 bytes in 0 blocks
+==27567== 
+==27567== For lists of detected and suppressed errors, rerun with: -s
+==27567== ERROR SUMMARY: 4 errors from 4 contexts (suppressed: 0 from 0)
+
+==27847== 
+==27847== HEAP SUMMARY:
+==27847==     in use at exit: 294 bytes in 3 blocks
+==27847==   total heap usage: 119,910 allocs, 119,907 frees, 18,248,710 bytes allocated
+==27847== 
+==27847== 43 bytes in 1 blocks are definitely lost in loss record 1 of 3
+==27847==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27847==    by 0x4BD035E: strdup (strdup.c:42)
+==27847==    by 0x126BD2: CGIRequest::initCGIenv() (CGIRequest.cpp:135)
+==27847==    by 0x1251B7: CGIRequest::CGIRequest(Request&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int) (CGIRequest.cpp:24)
+==27847==    by 0x11FFD6: Request::cgiRequest() (Request.cpp:281)
+==27847==    by 0x11EDDB: Request::handleRequest() (Request.cpp:159)
+==27847==    by 0x11E01D: Request::Request(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Request.cpp:61)
+==27847==    by 0x11309D: ConfigParser::handleClientRequests(std::vector<pollfd, std::allocator<pollfd> >&, unsigned long&, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:321)
+==27847==    by 0x11398E: ConfigParser::handleIncomingConnections(std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:416)
+==27847==    by 0x10E55B: main (main.cpp:100)
+==27847== 
+==27847== 43 bytes in 1 blocks are definitely lost in loss record 2 of 3
+==27847==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27847==    by 0x4BD035E: strdup (strdup.c:42)
+==27847==    by 0x126C00: CGIRequest::initCGIenv() (CGIRequest.cpp:136)
+==27847==    by 0x1251B7: CGIRequest::CGIRequest(Request&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int) (CGIRequest.cpp:24)
+==27847==    by 0x11FFD6: Request::cgiRequest() (Request.cpp:281)
+==27847==    by 0x11EDDB: Request::handleRequest() (Request.cpp:159)
+==27847==    by 0x11E01D: Request::Request(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Request.cpp:61)
+==27847==    by 0x11309D: ConfigParser::handleClientRequests(std::vector<pollfd, std::allocator<pollfd> >&, unsigned long&, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:321)
+==27847==    by 0x11398E: ConfigParser::handleIncomingConnections(std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:416)
+==27847==    by 0x10E55B: main (main.cpp:100)
+==27847== 
+==27847== 208 bytes in 1 blocks are definitely lost in loss record 3 of 3
+==27847==    at 0x48485C3: operator new[](unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==27847==    by 0x1258F4: CGIRequest::initCGIExecEnv() (CGIRequest.cpp:63)
+==27847==    by 0x1251C6: CGIRequest::CGIRequest(Request&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int) (CGIRequest.cpp:25)
+==27847==    by 0x11FFD6: Request::cgiRequest() (Request.cpp:281)
+==27847==    by 0x11EDDB: Request::handleRequest() (Request.cpp:159)
+==27847==    by 0x11E01D: Request::Request(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Request.cpp:61)
+==27847==    by 0x11309D: ConfigParser::handleClientRequests(std::vector<pollfd, std::allocator<pollfd> >&, unsigned long&, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:321)
+==27847==    by 0x11398E: ConfigParser::handleIncomingConnections(std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:416)
+==27847==    by 0x10E55B: main (main.cpp:100)
+==27847== 
+==27847== LEAK SUMMARY:
+==27847==    definitely lost: 294 bytes in 3 blocks
+==27847==    indirectly lost: 0 bytes in 0 blocks
+==27847==      possibly lost: 0 bytes in 0 blocks
+==27847==    still reachable: 0 bytes in 0 blocks
+==27847==         suppressed: 0 bytes in 0 blocks
+==27847== 
+==27847== For lists of detected and suppressed errors, rerun with: -s
+==27847== ERROR SUMMARY: 28 errors from 4 contexts (suppressed: 0 from 0)
+
+==28058== 
+==28058== HEAP SUMMARY:
+==28058==     in use at exit: 86 bytes in 2 blocks
+==28058==   total heap usage: 101,677 allocs, 101,675 frees, 16,236,814 bytes allocated
+==28058== 
+==28058== 43 bytes in 1 blocks are definitely lost in loss record 1 of 2
+==28058==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==28058==    by 0x4BD035E: strdup (strdup.c:42)
+==28058==    by 0x126C16: CGIRequest::initCGIenv() (CGIRequest.cpp:136)
+==28058==    by 0x1251D7: CGIRequest::CGIRequest(Request&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int) (CGIRequest.cpp:24)
+==28058==    by 0x11FFF6: Request::cgiRequest() (Request.cpp:281)
+==28058==    by 0x11EDFB: Request::handleRequest() (Request.cpp:159)
+==28058==    by 0x11E03D: Request::Request(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Request.cpp:61)
+==28058==    by 0x1130BD: ConfigParser::handleClientRequests(std::vector<pollfd, std::allocator<pollfd> >&, unsigned long&, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:321)
+==28058==    by 0x1139AE: ConfigParser::handleIncomingConnections(std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:416)
+==28058==    by 0x10E57B: main (main.cpp:100)
+==28058== 
+==28058== 43 bytes in 1 blocks are definitely lost in loss record 2 of 2
+==28058==    at 0x4846828: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==28058==    by 0x4BD035E: strdup (strdup.c:42)
+==28058==    by 0x126C44: CGIRequest::initCGIenv() (CGIRequest.cpp:137)
+==28058==    by 0x1251D7: CGIRequest::CGIRequest(Request&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int) (CGIRequest.cpp:24)
+==28058==    by 0x11FFF6: Request::cgiRequest() (Request.cpp:281)
+==28058==    by 0x11EDFB: Request::handleRequest() (Request.cpp:159)
+==28058==    by 0x11E03D: Request::Request(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Request.cpp:61)
+==28058==    by 0x1130BD: ConfigParser::handleClientRequests(std::vector<pollfd, std::allocator<pollfd> >&, unsigned long&, std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:321)
+==28058==    by 0x1139AE: ConfigParser::handleIncomingConnections(std::vector<ServerConfig, std::allocator<ServerConfig> > const&) (Config.cpp:416)
+==28058==    by 0x10E57B: main (main.cpp:100)
+==28058== 
+==28058== LEAK SUMMARY:
+==28058==    definitely lost: 86 bytes in 2 blocks
+==28058==    indirectly lost: 0 bytes in 0 blocks
+==28058==      possibly lost: 0 bytes in 0 blocks
+==28058==    still reachable: 0 bytes in 0 blocks
+==28058==         suppressed: 0 bytes in 0 blocks
+==28058== 
+==28058== For lists of detected and suppressed errors, rerun with: -s
+==28058== ERROR SUMMARY: 27 errors from 3 contexts (suppressed: 0 from 0)
