@@ -69,7 +69,7 @@ void	CGIRequest::initCGIExecEnv()
 
 	_envExec = new char *[_env.size() + 1];
 	if (!_envExec)
-		Log::error("Error allocating memory for env variables.");
+		Log::console(ERROR, " <" + _config.server_name + "> " + "Error allocating memory for env variables.");
 	for(; it != ite; ++it, i++)
 	{
 		std::string var = it->first + "=" + it->second;
@@ -308,7 +308,7 @@ void	CGIRequest::handleRequest()
 		dup2(_pipeChild[1], STDOUT_FILENO);
 		close(_pipeChild[1]);
 		if (execve(_argv[0], _argv, _envExec) == -1)
-			Log::error("Couldn't run cgi script : " + static_cast<std::string>(_argv[0]) + '\n');
+			Log::console(ERROR, " <" + _config.server_name + "> " + "Couldn't run cgi script : " + static_cast<std::string>(_argv[0]) + '\n');
 	}
 	else // parent process
 	{

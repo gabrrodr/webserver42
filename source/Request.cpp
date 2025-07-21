@@ -13,7 +13,9 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
 	setPath();
 	cleanPath();
 	size_t bodyStart = fullRequest.find("\r\n\r\n");
-	if (bodyStart != std::string::npos) {
+	if (bodyStart != std::string::npos)
+	{
+		_requestHeader = fullRequest.substr(0, bodyStart + 4);
 		_body = fullRequest.substr(bodyStart + 4);
 	} else {
 		std::cout << "No body found in request.\n";
@@ -51,7 +53,7 @@ Request::Request(const std::string& fullRequest, int fd, const std::vector<Serve
 			std::cout << '\n';
 		}
 	}
-	Log::message(RED+_config.server_name+" ["+_method+"] "+_uri+RESET);
+	Log::console(MESSAGE, " <" + _config.server_name + "> " + " [" + _method + "] " + _uri);
   	handleRequest();
 }
 
@@ -69,13 +71,13 @@ void Request::sendFullResponse(int fd, const std::string &response)
         ssize_t sent = send(fd, response.c_str() + totalSent, responseLength - totalSent, 0);
         if (sent < 0)
         {
-            Log::error("Failed to send full response.");
+            Log::console(ERROR, " <" + _config.server_name + "> " + "Failed to send full response.");
             break;
         }
         totalSent += sent;
     }
     if (totalSent < responseLength)
-        Log::error("Response not fully send. Sent: " + toString(totalSent) + " of " + toString(responseLength));
+        Log::console(ERROR, " <" + _config.server_name + "> " + "Response not fully send. Sent: " + toString(totalSent) + " of " + toString(responseLength));
 }
 
 // utils
@@ -119,11 +121,13 @@ void	Request::handleRequest()
 	if (!_location.redirect.second.empty())
 	{
 		setRedirectResponse();
+		Log::console(MESSAGE, " <" + _config.server_name + "> " + "Redirecting.");
 		sendFullResponse(_fd, _response);
 	}
-	else if (stat(_path.c_str(), &pathInfo) != 0)
+	else if (stat(_path.c_str(), &pathInfo) != 0 && _method != "DELETE")
 	{
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
+		Log::console(WARNING, "Resource doesn't exist: " + _uri);
 	}
 	else if (!methodIsAllowed(_method, _location.methods))
 	{
@@ -146,6 +150,8 @@ void	Request::handleRequest()
 		{
 			if (payloadCheck(_config.client_max_body_size))
 				sendErrorResponse(_fd, LARGE_PAYLOAD, _config.error_page);
+//			else if (_uri == "/data")
+//				handleFileUpload();
 			else
 				postRequest();
 		}
@@ -167,7 +173,7 @@ void	Request::handleRequest()
 	if (!methodIsAllowed(_method, _location.methods, _location.url))
 	{
 
-		Log::error("Method " + _method + " isn't allowed in this location.\n");
+		Log::console(ERROR, "Method " + _method + " isn't allowed in this location.\n");
 		sendErrorResponse(_fd, METH_NOT_ALLOWED, _config.error_page);
 		return ;
 	}
@@ -262,10 +268,11 @@ void	Request::sendErrorResponse(int fd, int code, std::map<int, std::string> err
 	}
 }
 
-void	Request::handleFileUpload() {
+void	Request::handleFileUpload(std::string fileName)
+{
 	size_t filenamePos = _body.find("filename=\"");
 	if (filenamePos == std::string::npos) {
-		Log::error("Filename not found in request body.");
+		Log::console(ERROR, " <" + _config.server_name + "> " + "Filename not found in request body.");
 		return;
 	}
 	//Getting the filename so we can store it with the correct name
@@ -275,93 +282,270 @@ void	Request::handleFileUpload() {
 	//now the content type
 	size_t contentTypePos = _body.find("Content-Type: ");
 	if (contentTypePos == std::string::npos) {
-		Log::error("Content-Type not found in request body.");
+		Log::console(ERROR, " <" + _config.server_name + "> " + "Content-Type not found in request body.");
 		return;
 	}
 	size_t contentTypeStart = contentTypePos + 15;
 	size_t contentTypeEnd = _body.find("\r\n", contentTypeStart);
 	_contentType = _body.substr(contentTypeStart, contentTypeEnd - contentTypeStart);
-
 	size_t contentStart = _body.find("\r\n\r\n", filenameEnd) + 4;
 	size_t contentEnd = _body.find("\r\n");
 	_content = _body.substr(contentStart, contentEnd - contentStart);
 	//now we save the file
-	if (mkdir("upload/data", 0777) == -1 && errno != EEXIST) {
-		Log::error("Failed to create directory.");
+	std::string	workingDirectory = getWorkingDir();
+	std::string	dataPath = workingDirectory + _location.upload_dir;
+	if (mkdir(dataPath.c_str(), 0777) == -1 && errno != EEXIST) {
+		Log::console(ERROR, " <" + _config.server_name + "> " + "Failed to create directory.");
 		return;
 	}
-	std::ofstream file((_path + _filename).c_str(), std::ios::binary);
+	std::string	path = _location.root + _location.upload_dir;
+	std::ofstream file((path + '/' + _filename).c_str(), std::ios::binary);
 	if (!file) {
-		Log::error("Failed to open file.");
+		Log::console(ERROR, " <" + _config.server_name + "> " + "Failed to open file.");
 		return;
 	}
 	file.write(_content.c_str(), _content.length());
 	file.close();
-	std::cout << "File uploaded successfully.\n";
+	std::string	header;
+	std::string	body = "<h1>" + fileName + " Posted" + "</h1>";
+	header = "HTTP/1.1 200 OK\r\n";
+	header += "Content-type: text/html\r\n";
+	header += "Content-Length: " + toString(body.length()) + "\r\n\r\n";
+	std::string	response = header + body;
+	sendFullResponse(_fd, response);
+}
+
+std::string	Request::getBoundary()
+{
+	std::string	boundaryKey = "boundary=";
+	size_t	boundaryPos = _requestHeader.find(boundaryKey);
+
+	if (boundaryPos == std::string::npos)
+		return ("");
+	boundaryPos += boundaryKey.size();
+	size_t	boundaryEnd = _requestHeader.find("\r\n", boundaryPos);
+	std::string	boundary = "--" + _requestHeader.substr(boundaryPos, boundaryEnd - boundaryPos);
+	return (boundary);
+}
+
+std::string	Request::getFileContentBoundary(std::string &boundary)
+{
+	size_t	startBody = _body.find(boundary);
+	if (startBody == std::string::npos)
+		return ("");
+	startBody += boundary.size();
+	size_t	headerEnd = _body.find("\r\n\r\n", startBody);
+	if (headerEnd == std::string::npos)
+		return("");
+	headerEnd += 4;
+	size_t	endBody = _body.find(boundary, headerEnd);
+	if (endBody == std::string::npos)
+		return ("");
+	std::string	fileContent = _body.substr(headerEnd, endBody - headerEnd - 2);
+	return (fileContent);
+}
+
+std::string	Request::getFileName()
+{
+	size_t	filenamePos = _body.find("filename=\"");
+	if (filenamePos == std::string::npos)
+		return ("");
+	filenamePos += 10;
+	size_t	filenameEnd = _body.find("\"", filenamePos);
+	std::string fileName = _body.substr(filenamePos, filenameEnd - filenamePos);
+	return (fileName);
+}
+
+void	Request::makeDirectory(std::string &directory)
+{
+	std::string	wd = getWorkingDir();
+	std::string	root;
+	if (_location.root[0] == '.')
+		root = _location.root.substr(1);
+	else
+		root = _location.root;
+	std::string	path = wd + root + directory;
+	std::cout << path << '\n';
+	struct stat	info;
+
+	if (stat(path.c_str(), &info) != 0)
+	{
+		if (mkdir(path.c_str(), 0777))
+			Log::console(ERROR, "coundl't create " + directory + " directory for uploading.");
+	}
+}
+
+void	Request::sendPostResponse(std::string resource)
+{
+	std::string	decodedResource;
+	std::string	content;
+
+	for (size_t i = 0; i < resource.length(); i++)
+	{
+		if (resource[i] == '+')
+			decodedResource += ' ';
+		else if (resource[i] == '%' && i + 2 < resource.length())
+		{
+			std::string	hexValue = resource.substr(i + 1, 2);
+			char	decodedChar = static_cast<char>(std::strtol(hexValue.c_str(), NULL, 16));
+			decodedResource += decodedChar;
+			i+= 2;
+		}
+		else
+			decodedResource += resource[i];
+	}
+	while (decodedResource.find("=") != std::string::npos)
+	{
+		decodedResource = decodedResource.substr(decodedResource.find("=") + 1);
+		content += "<p>" + decodedResource.substr(0, decodedResource.find("&")) + "</p>";
+		decodedResource = decodedResource.substr(decodedResource.find("&") + 2);
+	}
+	std::string	page = "<!DOCTYPE html><html><head><title>Passed: </title></head><body><h1>" + content + "</h1><br><br>";
+	std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + toString(page.length()) + "\r\n\r\n" + page;
+	sendFullResponse(_fd, response);
+}
+
+std::string	Request::getContentType()
+{
+	std::string	contentTypeKey = "Content-Type: ";
+	size_t	contentTypePos = _requestHeader.find(contentTypeKey);
+	if (contentTypePos == std::string::npos)
+		return ("");
+	contentTypePos += contentTypeKey.size();
+	size_t contentTypeEndPos;
+	if (_requestHeader.find("\r\n", contentTypePos) < _requestHeader.find(";", contentTypePos))
+		contentTypeEndPos = _requestHeader.find("\r\n", contentTypePos);
+	else
+		contentTypeEndPos = _requestHeader.find(";", contentTypePos);
+	std::string	contentType = _requestHeader.substr(contentTypePos, contentTypeEndPos - contentTypePos);
+	return (contentType);
 }
 
 void	Request::postRequest()
 {
-	_path = _location.root + _location.upload_dir + "/upload.txt";
-	if (_location.upload_dir.empty())
+	std::string	uploadStore = _location.upload_dir;
+	std::string	contentType = getContentType();
+	std::string	content;
+
+	if (uploadStore.empty() || uploadStore == "./" || uploadStore == "/")
+		uploadStore = "uploads";
+	if (contentType.empty())
 	{
-		Log::message("Can't post, upload_dir is empty in this location.\n");
+		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
+		return (Log::console(WARNING, "couldn't get content type."));
+	}
+	std::string	boundary = getBoundary();
+	if (boundary.empty() && contentType == "multipart/fomr-data")
+	{
+		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
+		return (Log::console(WARNING, "couldn't get content boundaries."));
+	}
+	if (contentType == "multipart/form-data" ||
+		contentType == "application/json" ||
+		contentType == "application/octet-stream")
+		content = getFileContentBoundary(boundary);
+	else
+		content = _body;
+	std::string	fileName = getFileName();
+	if (content.empty() || (fileName.empty() && contentType == "multipart/form-data"))
+	{
+		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
+		return (Log::console(WARNING, "couldn't process file."));
+	}
+	makeDirectory(uploadStore);
+	if (contentType == "multipart/form-data" ||
+		contentType == "application/json" ||
+		contentType == "application/octet-stream")
+	{
+		/*
+		std::string	directory = uploadStore + '/' + fileName;
+		std::ofstream	ofs(directory.c_str(), std::ios_base::out | std::ios_base::trunc);//WHAT
+		if (!ofs)
+			return (Log::console(WARNING, "Couldn't write to file."));
+		ofs << content;
+		if (!ofs)
+			return (Log::console(WARNING, "Failed to write content to file: " + fileName));
+		ofs.close();*/
+		handleFileUpload(fileName);
 	}
 	else
 	{
-		std::ifstream check(_path.c_str());
-		bool fileExists = check.is_open();
-		check.close();
-		std::ofstream file(_path.c_str(), std::ios::app);
-		if (!file.is_open())
+		_path = _location.root + _location.upload_dir + "/upload.txt";
+		if (_location.upload_dir.empty())
 		{
-			Log::error("Failed to open file for writing.");
-			sendErrorResponse(_fd, INTERNAL_SERVER, _config.error_page);
-			//setErrorResponse(500);
+			Log::console(WARNING, " <" + _config.server_name + "> " + "Can't post, upload_dir is empty in this location.\n");
 		}
-		else {
-			file << _body << '\n';
-			file.close();
-			std::cout << "File written successfully.\n";
-			_contentLength = _body.length();
-			setContentType();
-			if (fileExists) {
-				setHeader(200); }
+		else
+		{
+			std::ifstream check(_path.c_str());
+			bool fileExists = check.is_open();
+			check.close();
+			std::ofstream file(_path.c_str(), std::ios::app);
+			if (!file.is_open())
+			{
+				Log::console(ERROR, " <" + _config.server_name + "> " + "Failed to open file for writing.");
+				sendErrorResponse(_fd, INTERNAL_SERVER, _config.error_page);
+				//setErrorResponse(500);
+			}
 			else {
-				setHeader(201); }
-			sendFullResponse(_fd, _header);
-			std::cout << "Response sent successfully.\n";
+				file << _body << '\n';
+				file.close();
+				_contentLength = _body.length();
+				setContentType();
+				if (fileExists) {
+					setHeader(200); }
+				else {
+					setHeader(201); }
+				sendPostResponse(content);
+				sendFullResponse(_fd, _header);
+			}
 		}
-	}
+	}	
 }
 
-void 	Request::deleteRequest() {
-	std::ifstream check(_path.c_str());
+std::string	Request::getDeletePath()
+{
+	std::string	path;
+
+	size_t	location = _uri.find(_location.url);
+	if (location == std::string::npos)
+		return ("");
+	std::string	resource = _uri.substr(location + _location.url.size());
+	if (resource[0] == '/')
+		path = _location.upload_dir + resource;
+	else
+		path =  _location.upload_dir + '/' + resource;
+	return (path);
+}
+
+void 	Request::deleteRequest()
+{
+	std::string	deletePath = _location.root + getDeletePath();
+	std::ifstream check(deletePath.c_str());
 	bool fileExists = check.is_open();
 	check.close();
 	if (!fileExists) {
-		Log::error("Failed to find file for deletion.");
+		Log::console(ERROR, "Failed to find file for deletion.");
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
 		//setErrorResponse(404);
 		return;
 	}
-	std::ofstream file(_path.c_str());
+	std::ofstream file(deletePath.c_str());
 	if (!file.is_open()) {
-		Log::error("Failed to open file for deletion.");
+		Log::console(ERROR, "Failed to open file for deletion.");
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
 		//setErrorResponse(500);
 		return;
 	} else {
 		_contentLength = 0;
 		file.close();
-		if (std::remove(_path.c_str())) {
-			Log::error("Failed to delete file.");
+		if (std::remove(deletePath.c_str())) {
+			Log::console(ERROR, "Failed to delete file.");
 			//setErrorResponse(204); --do the 204 No content one.
 			return;
 		}
 		setHeader(200);
 		sendFullResponse(_fd, _header);
-		std::cout << "Response sent successfully" << std::endl;
 	}
 	//check if the path exists 
 	//check if you can delete it
@@ -445,7 +629,7 @@ void	Request::setContentType()
     else
 	{
 		_contentType = "";
-        //Log::error("Unknown type: " + _path + '\n'); // added to see what the tester might send through here
+        //Log::console(ERROR, "Unknown type: " + _path + '\n'); // added to see what the tester might send through here
 	}
 }
 
@@ -562,7 +746,7 @@ void	Request::handleAutoIndexResponse()
 	DIR	*dir = opendir(pathTest.c_str()); // returns a pointer to the directory stream
 	if (!dir)
 	{
-		Log::error("Failed to open dir: " + _path + " for autoindexing.\n");
+		Log::console(ERROR, "Failed to open dir: " + _path + " for autoindexing.\n");
 		return;
 	}
 	std::stringstream	body;

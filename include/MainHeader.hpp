@@ -19,5 +19,12 @@
 #define RESET "\033[0m"
 #define CLEAR "\033[2J\033[H"
 
+typedef enum s_log
+{
+    ERROR,
+    WARNING,
+    MESSAGE,
+} e_log;
+
 # define DEF_CONFIG "./conf/valid/example.conf"
 #endif

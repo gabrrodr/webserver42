@@ -1,2 +1,0 @@
-
-files or folders that probably dont make part in the actual project
