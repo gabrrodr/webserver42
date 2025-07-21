@@ -306,7 +306,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
     std::vector<ListeningSocket*>   sockets;
     std::vector<pollfd>             poll_fds;
 
-    Log::console(ERROR, "\033[35mSETTIN UP SERVERS...\033[0m\n");
+    Log::console(MESSAGE, "\033[35mSETTIN UP SERVERS...\033[0m\n");
 
     for (size_t i = 0; i < servers.size(); ++i)
         setupListeningSocket(servers[i], &poll_fds, &sockets);
