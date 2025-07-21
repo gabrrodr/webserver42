@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<meta charset="UTF-8">
 		<link rel="stylesheet" href="/assets/css/main.css">
 		<link rel="stylesheet" href="/assets/css/header.css">
 		<link rel="stylesheet" href="/assets/css/navbar.css">
@@ -28,7 +29,7 @@
 					const confirmed = confirm("Are you sure you want to delete this file?\n" + path);
 					if (!confirmed) return;
 
-					fetch(`/uploads/${path}`, {
+					fetch(`${path}`, {
 						method: "DELETE"
 					})
 					.then(response => {

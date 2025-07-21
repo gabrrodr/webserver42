@@ -5,7 +5,7 @@ ConfigParser::ConfigParser(const std::string& filename) : filename_(filename) {}
 std::vector<ServerConfig>   ConfigParser::parse() {
     std::ifstream   file(filename_.c_str());
     if (!file.is_open()) {
-        Log::error("parser error: Could not open file " + filename_);
+        Log::console(ERROR, "parser error: Could not open file " + filename_);
         exit(1);
     }
     std::vector<ServerConfig>   servers;
@@ -306,7 +306,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
     std::vector<ListeningSocket*>   sockets;
     std::vector<pollfd>             poll_fds;
 
-    Log::error("\033[35mSETTIN UP SERVERS...\033[0m\n");
+    Log::console(ERROR, "\033[35mSETTIN UP SERVERS...\033[0m\n");
 
     for (size_t i = 0; i < servers.size(); ++i)
         setupListeningSocket(servers[i], &poll_fds, &sockets);
@@ -322,7 +322,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
         } while (activity < 0 && errno == EINTR);
         if (activity < 0 && !endFlag)
         {
-            Log::error("Poll failed");
+            Log::console(ERROR, "Poll failed");
             continue;
         }
         for (size_t i = 0; i < poll_fds.size(); ++i)
@@ -341,7 +341,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
                     {
                         if (errno == EAGAIN || errno == EWOULDBLOCK)
                             continue;
-                        Log::error("Failed to accept incoming connection ");
+                        Log::console(ERROR, "Failed to accept incoming connection ");
                         continue;
                     }
                 if (DEBUG)

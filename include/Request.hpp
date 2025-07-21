@@ -37,7 +37,7 @@ class Request
 		void	setErrorResponse(int error);
 		void	getRequest();
 		void	postRequest();
-		void	handleFileUpload();
+		void	handleFileUpload(std::string fileName);
 		void	deleteRequest();
 		void	setContentType(std::string &path);
 		void	cgiRequest();
@@ -45,11 +45,18 @@ class Request
 		void	setContentType();
 		void	setHeader(int code);
 		void	cleanPath();
-		bool	payloadCheck(long unsigned int max_body_size);
 		void	setConfig(const std::vector<ServerConfig> &servers);
 		void	sendFullResponse(int fd, const std::string &response);
 		void	sendErrorResponse(int fd, int code, std::map<int, std::string> errorPages);
 		void	setRedirectResponse();
+		void	makeDirectory(std::string &directory);
+		void	sendPostResponse(std::string resource);
+		bool	payloadCheck(long unsigned int max_body_size);
+		std::string	getBoundary();
+		std::string	getFileContentBoundary(std::string &boundary);
+		std::string	getFileName();
+		std::string	getContentType();
+		std::string	getDeletePath();
 		const std::string	&getMethod() const;
 		const std::string	&getUri() const;
 		const std::string	&getProtocol() const;
@@ -61,11 +68,11 @@ class Request
 	private:
 		int			_fd;
 		int			_contentLength;
+		std::string	_requestHeader;
 		std::string _fullRequest;
 		std::string	_response;
 		std::string	_method;
 		std::string	_uri;
-		std::map<std::string, std::string>	_headers;
 		std::string _body;
 		std::string	_protocol;
 		std::string	_contentType;

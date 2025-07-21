@@ -2,10 +2,10 @@
 #define LOG_HPP
 
 #include <iostream>
+#include "MainHeader.hpp"
 
 class Log {
     public:
-        static void    error(const std::string &msg);
-        static void    message(const std::string &msg);
+        static void    console(e_log log, const std::string &msg);
 };
 #endif

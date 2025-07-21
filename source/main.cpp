@@ -12,12 +12,12 @@ bool    configExists(std::string str)
     stat(str.c_str(), &fileInfo);
     if (!file.is_open())
     {
-        Log::error("Invalid configuration file.");
+        Log::console(ERROR, "Invalid configuration file.");
         return (false);
     }
     else if (S_ISDIR(fileInfo.st_mode))
     {
-        Log::error("Configuration file can't be a directory.");
+        Log::console(ERROR, "Configuration file can't be a directory.");
         return (false);
     }
     return (true);
@@ -29,7 +29,7 @@ int main(int argc, char **argv, char **env)
     std::signal(SIGPIPE, SIG_IGN);
     (void)env;
     if (argc != 2) {
-        Log::error("❌ Invalid usage!\n"
+        Log::console(ERROR, "❌ Invalid usage!\n"
             "Usage: ./webserv [configuration file]");
         return (1);
     }
