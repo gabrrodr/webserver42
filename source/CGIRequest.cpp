@@ -142,6 +142,10 @@ void	CGIRequest::initCGIenv()
 	_argv[0] = strdup(_interpreter.c_str());
 	_argv[1] = strdup(_scriptPath.c_str());
 	_argv[2] = NULL;
+
+	std::cout	<< "argv[0]" << _argv[0]
+				<< "\nargv[1]" << _argv[1]
+				<< '\n';
 }
 
 std::string	CGIRequest::getRootPath()
@@ -292,7 +296,7 @@ void	CGIRequest::handleRequest()
 	pid_t	pid;
 	clock_t	start = getTime();
 
-	if (open(_scriptPath.c_str(), F_OK) == -1)	
+	if (open(_scriptPath.c_str(), F_OK) == -1)
 		return ; // ERROR SCRIPT, send error response
 	if (pipe(_pipeChild) == -1 || pipe(_pipeParent) == -1)
 		return ; // ERROR PIPE
@@ -329,7 +333,7 @@ void	CGIRequest::handleRequest()
 					close(_pipeParent[1]);
 					std::string	response;
 					std::string	header;
-					std::string	content = "Internal Server Error write\n";
+					std::string	content = "Internal Server Error\n";
 					header += "HTTP/1.1 500 Internal Server Error\r\n";
 					header += "Content-Type: text/html\r\n";
 					header += "Content-Length: " + toString(content.length()) + " \r\n\r\n";
@@ -372,12 +376,13 @@ void	CGIRequest::handleRequest()
 				{
 					std::string	response;
 					std::string	header;
-					std::string	content = "Internal Server Error THIS\n";
+					std::string	content = "Internal Server Error\n";
 					header += "HTTP/1.1 500 Internal Server Error\r\n";
 					header += "Content-Type: text/html\r\n";
 					header += "Content-Length: " + toString(content.length()) + " \r\n";
 					header += "Connection: clone\r\n\r\n";
 					response += header + content;
+					Log::console(WARNING, "Couldn't run script.");
 					send(_client_fd, response.c_str(), response.length(), 0);
 				}
 				close(_client_fd);
