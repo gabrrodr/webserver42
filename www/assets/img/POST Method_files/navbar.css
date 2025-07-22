@@ -1,0 +1,31 @@
+
+#navbar-ul
+{
+	border-radius: 15px;
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	background: rgba(71, 139, 222, 1);
+}
+
+#navbar-ul li
+{
+	float: left;
+	padding: 0 5%;
+}
+
+#navbar a
+{
+	display: block;
+	color: white;
+	text-align: center;
+	padding: 18px 10px;
+	text-decoration: none;
+	font-weight: bold;
+}
+
+#navbar a:hover
+{
+	background: rgba(176, 72, 169, 1);
+}

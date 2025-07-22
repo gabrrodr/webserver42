@@ -13,9 +13,9 @@
 #include <sys/socket.h>
 #include <ctime>
 
-#define RED "\033[38;5;196m"
-#define YELLOW "\033[38;5;226m"
-#define GREEN "\033[38;5;47m"
+#define RED "\033[0;31m"
+#define YELLOW "\x1b[38;5;228m"
+#define GREEN "\033[0;32m"
 #define RESET "\033[0m"
 #define CLEAR "\033[2J\033[H"
 

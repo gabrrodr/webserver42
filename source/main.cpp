@@ -37,6 +37,7 @@ int main(int argc, char **argv, char **env)
         try {
             ConfigParser    parser(argv[1]);
             std::vector<ServerConfig>   servers = parser.parse();
+           // parser.serversPtr = &servers;
 
             for (size_t i = 0; i < servers.size(); ++i)
             {
