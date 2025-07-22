@@ -141,10 +141,6 @@ void	CGIRequest::initCGIenv()
 	_argv[0] = strdup(_interpreter.c_str());
 	_argv[1] = strdup(_scriptPath.c_str());
 	_argv[2] = NULL;
-
-	std::cout	<< "argv[0]" << _argv[0]
-				<< "\nargv[1]" << _argv[1]
-				<< '\n';
 }
 
 std::string	CGIRequest::getRootPath()
@@ -219,7 +215,6 @@ void	CGIRequest::getInterpreter()
 	{
 		if (_location.cgi_extension[i] == _extension)
 		{
-			std::cout << _location.cgi_extension[i] << " == " << _extension << '\n';
 			_interpreter = _location.cgi_path[i];
 			return ;
 		}

@@ -315,7 +315,21 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
     Log::console(MESSAGE ,"\033[35mSETTIN UP SERVERS...\033[0m\n");
 
     for (size_t i = 0; i < servers.size(); ++i)
-        setupListeningSocket(servers[i], &poll_fds, &sockets);
+    {
+        try
+        {
+            setupListeningSocket(servers[i], &poll_fds, &sockets);
+        }
+        catch(const std::exception& e)
+        {
+            for (size_t i = 0; i < sockets.size(); ++i)
+                delete sockets[i];
+            std::cerr << e.what() << '\n';
+            Log::console(ERROR, "Failed to setup Listening Sockets");
+            throw   ServerException("Failed to setup Listening Sockets \n");
+        }
+        
+    }
 
     std::cout << "Entering main event loop..." << std::endl;
     while (!endFlag)
