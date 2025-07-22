@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <ctime>
+#include <cstdlib>
 #include "Request.hpp"
 
 class Request;

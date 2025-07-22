@@ -17,7 +17,7 @@ void    Log::console(e_log log, const std::string &msg) {
                 std::cout << YELLOW << "[" << buffer << "] " << msg << RESET << std::endl;
 			break;
 		case MESSAGE:
-                std::cout << GREEN << "[" << buffer << "] " << msg << RESET << std::endl;
+                std::cout << "[" << buffer << "] " << msg << std::endl;
 			break;
     }
 }

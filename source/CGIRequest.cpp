@@ -2,7 +2,6 @@
 
 CGIRequest::CGIRequest(Request &request, const std::string &requestStr, int client_fd)
 {
-	// init CGIRequest member variables that inherit their data from request
 	_method = request.getMethod();
 	_uri = request.getUri();
 	_protocol = request.getProtocol();
@@ -205,6 +204,12 @@ std::string	CGIRequest::getHeader(const std::string &fullRequest)
 
 void	CGIRequest::getInterpreter()
 {
+	if (std::abs((int)(_location.cgi_extension.size() - _location.cgi_path.size())) > 1)
+	{
+		Log::console(ERROR, " <" + _config.server_name + "> " + "CGI extension and CGI path size difference is greater than 1.");
+		_interpreter = _scriptPath;
+		return ;
+	}
 	if (_extension == ".cgi")
 	{
 		_interpreter = _scriptPath;
@@ -214,6 +219,7 @@ void	CGIRequest::getInterpreter()
 	{
 		if (_location.cgi_extension[i] == _extension)
 		{
+			std::cout << _location.cgi_extension[i] << " == " << _extension << '\n';
 			_interpreter = _location.cgi_path[i];
 			return ;
 		}
@@ -382,7 +388,7 @@ void	CGIRequest::handleRequest()
 					header += "Content-Length: " + toString(content.length()) + " \r\n";
 					header += "Connection: clone\r\n\r\n";
 					response += header + content;
-					Log::console(WARNING, "Couldn't run script.");
+					Log::console(WARNING, " <" + _config.server_name + "> " +  "Couldn't run script.");
 					send(_client_fd, response.c_str(), response.length(), 0);
 				}
 				close(_client_fd);

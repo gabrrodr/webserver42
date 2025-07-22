@@ -41,12 +41,14 @@ struct  ServerConfig {
 
 class   ConfigParser {
     private:
+        std::vector<ServerConfig>   *serversPtr;
         std::string filename_;
         ServerConfig    parseServer(std::ifstream& file, std::string& line);
         Location    parseLocation(std::ifstream& file);
 
     public:
         ConfigParser(const std::string& filename);
+        ~ConfigParser();
         void    cleanupPendingFds(std::vector<pollfd> clientFds);
         void    handleIncomingConnections(const std::vector<ServerConfig>& servers);
         void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i, const std::vector<ServerConfig> &servers);

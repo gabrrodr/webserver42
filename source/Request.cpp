@@ -4,6 +4,7 @@
 
 Request::Request(const std::string& fullRequest, int fd, const std::vector<ServerConfig> &servers)
 {
+	std::cout << fullRequest << '\n';
 	_fullRequest = fullRequest;
 	std::stringstream	ss(fullRequest);
 	_fullRequest = fullRequest;
@@ -127,10 +128,11 @@ void	Request::handleRequest()
 	else if (stat(_path.c_str(), &pathInfo) != 0 && _method != "DELETE")
 	{
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
-		Log::console(WARNING, "Resource doesn't exist: " + _uri);
+		Log::console(WARNING, " <" + _config.server_name + "> " +  "Resource doesn't exist: " + _uri);
 	}
 	else if (!methodIsAllowed(_method, _location.methods))
 	{
+		Log::console(WARNING,  " <" + _config.server_name + "> " + "Method " + _method + " isn't allowed in " + _location.url);
 		sendErrorResponse(_fd, METH_NOT_ALLOWED, _config.error_page);
 	}
 	else
@@ -365,13 +367,12 @@ void	Request::makeDirectory(std::string &directory)
 	else
 		root = _location.root;
 	std::string	path = wd + root + directory;
-	std::cout << path << '\n';
 	struct stat	info;
 
 	if (stat(path.c_str(), &info) != 0)
 	{
 		if (mkdir(path.c_str(), 0777))
-			Log::console(ERROR, "coundl't create " + directory + " directory for uploading.");
+			Log::console(ERROR,  " <" + _config.server_name + "> " + "coundl't create " + directory + " directory for uploading.");
 	}
 }
 
@@ -432,13 +433,13 @@ void	Request::postRequest()
 	if (contentType.empty())
 	{
 		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
-		return (Log::console(WARNING, "couldn't get content type."));
+		return (Log::console(WARNING,  " <" + _config.server_name + "> " + "Couldn't get content type."));
 	}
 	std::string	boundary = getBoundary();
-	if (boundary.empty() && contentType == "multipart/fomr-data")
+	if (boundary.empty() && contentType == "multipart/form-data")
 	{
 		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
-		return (Log::console(WARNING, "couldn't get content boundaries."));
+		return (Log::console(WARNING,  " <" + _config.server_name + "> " + "Couldn't get content boundaries."));
 	}
 	if (contentType == "multipart/form-data" ||
 		contentType == "application/json" ||
@@ -450,7 +451,7 @@ void	Request::postRequest()
 	if (content.empty() || (fileName.empty() && contentType == "multipart/form-data"))
 	{
 		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
-		return (Log::console(WARNING, "couldn't process file."));
+		return (Log::console(WARNING,  " <" + _config.server_name + "> " + "couldn't process file."));
 	}
 	makeDirectory(uploadStore);
 	if (contentType == "multipart/form-data" ||
@@ -525,14 +526,14 @@ void 	Request::deleteRequest()
 	bool fileExists = check.is_open();
 	check.close();
 	if (!fileExists) {
-		Log::console(ERROR, "Failed to find file for deletion.");
+		Log::console(ERROR,  " <" + _config.server_name + "> " + "Failed to find file for deletion.");
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
 		//setErrorResponse(404);
 		return;
 	}
 	std::ofstream file(deletePath.c_str());
 	if (!file.is_open()) {
-		Log::console(ERROR, "Failed to open file for deletion.");
+		Log::console(ERROR,  " <" + _config.server_name + "> " + "Failed to open file for deletion.");
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
 		//setErrorResponse(500);
 		return;
@@ -540,7 +541,7 @@ void 	Request::deleteRequest()
 		_contentLength = 0;
 		file.close();
 		if (std::remove(deletePath.c_str())) {
-			Log::console(ERROR, "Failed to delete file.");
+			Log::console(ERROR,  " <" + _config.server_name + "> " + "Failed to delete file.");
 			//setErrorResponse(204); --do the 204 No content one.
 			return;
 		}
@@ -746,7 +747,7 @@ void	Request::handleAutoIndexResponse()
 	DIR	*dir = opendir(pathTest.c_str()); // returns a pointer to the directory stream
 	if (!dir)
 	{
-		Log::console(ERROR, "Failed to open dir: " + _path + " for autoindexing.\n");
+		Log::console(ERROR,  " <" + _config.server_name + "> " + "Failed to open dir: " + _path + " for autoindexing.\n");
 		return;
 	}
 	std::stringstream	body;

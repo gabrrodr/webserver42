@@ -2,6 +2,10 @@
 
 ConfigParser::ConfigParser(const std::string& filename) : filename_(filename) {}
 
+ConfigParser::~ConfigParser()
+{
+}
+
 std::vector<ServerConfig>   ConfigParser::parse() {
     std::ifstream   file(filename_.c_str());
     if (!file.is_open()) {
@@ -120,6 +124,7 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
     while (std::getline(file, line))
     {
         trim(line);
+       // std::cout << line << '\n';
         if (line == "}")
             break;
         if (line.empty() || line[0] == '#')
@@ -133,6 +138,7 @@ ServerConfig    ConfigParser::parseServer(std::ifstream& file, std::string& line
             std::string errorLine = trailCheck(line.substr(11));
             int errorCode = std::atoi(errorLine.c_str());
             size_t  slash = errorLine.find_first_of('/');
+
             std::string errorPath = errorLine.substr(slash);
             server.error_page[errorCode] = errorPath;
         }
@@ -306,7 +312,7 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
     std::vector<ListeningSocket*>   sockets;
     std::vector<pollfd>             poll_fds;
 
-    Log::console(MESSAGE, "\033[35mSETTIN UP SERVERS...\033[0m\n");
+    Log::console(MESSAGE ,"\033[35mSETTIN UP SERVERS...\033[0m\n");
 
     for (size_t i = 0; i < servers.size(); ++i)
         setupListeningSocket(servers[i], &poll_fds, &sockets);
