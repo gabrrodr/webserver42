@@ -15,7 +15,7 @@ int BindingSocket::connect_to_network(int sock, struct sockaddr_in address) {
 }
 
 /*here I use the bind() function because the server will associate its socket with a 
-specific local IP address and port number. thisestablishes a unique identifier for 
+specific local IP address and port number. this establishes a unique identifier for 
 the socket so that it can accept incoming connections and data.
 -Servers use bind() to specify which port they will listen on for incoming connectiomns
 -sets the local endpoint for the socket*/
