@@ -296,7 +296,7 @@ void    ConfigParser::setupListeningSocket(const ServerConfig &servers, std::vec
             fcntl(sock_fd, F_SETFL, O_NONBLOCK);
             pollfd  pfd;
             pfd.fd = sock_fd;
-            pfd.events = POLLIN;
+            pfd.events = POLLIN | POLLOUT;
             poll_fds->push_back(pfd);
             sockets->push_back(server);
             std::cout << "Server listening on port " << servers.port[j] << std::endl;
@@ -355,10 +355,10 @@ void    ConfigParser::handleIncomingConnections(const std::vector<ServerConfig>&
                 fcntl(clientSocket, F_SETFL, O_NONBLOCK);
                 pollfd  client_fd;
                 client_fd.fd = clientSocket;
-                client_fd.events = POLLIN;
+                client_fd.events = POLLIN | POLLOUT;
                 poll_fds.push_back(client_fd);
                 }
-                else
+                else if (poll_fds[i].revents & POLLOUT)
                     handleClientRequests(poll_fds, i, servers);
             }
         }
