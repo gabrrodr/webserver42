@@ -4,7 +4,7 @@
 
 Request::Request(const std::string& fullRequest, int fd, const std::vector<ServerConfig> &servers)
 {
-	std::cout << fullRequest << '\n';
+	//std::cout << fullRequest << '\n';
 	_fullRequest = fullRequest;
 	std::stringstream	ss(fullRequest);
 	_fullRequest = fullRequest;
@@ -125,7 +125,7 @@ void	Request::handleRequest()
 		Log::console(MESSAGE, " <" + _config.server_name + "> " + "Redirecting.");
 		sendFullResponse(_fd, _response);
 	}
-	else if (stat(_path.c_str(), &pathInfo) != 0 && _method != "DELETE")
+	else if (stat(_path.c_str(), &pathInfo) != 0 && _method != "DELETE" && _method != "POST")
 	{
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
 		Log::console(WARNING, " <" + _config.server_name + "> " +  "Resource doesn't exist: " + _uri);
@@ -138,7 +138,15 @@ void	Request::handleRequest()
 	else
 	{
 		if (isCGIRequest(_uri) && !S_ISDIR(pathInfo.st_mode))
+		{
 			cgiRequest();
+			//if (_location.url != "/cgi-bin")
+			//{
+			//	Log::console(WARNING, " <" + _config.server_name + "> " + " This location isn't configured to handle CGI.");
+			//	sendErrorResponse(_fd, 400, _config.error_page);
+			//}
+			//else
+		}
 		else if (_method == "GET")
 		{
 			if (S_ISDIR(pathInfo.st_mode) && _location.autoindex)
@@ -422,6 +430,11 @@ std::string	Request::getContentType()
 	return (contentType);
 }
 
+//std::string	Request::getFileContentOctetStream()
+//{
+//	
+//}
+
 void	Request::postRequest()
 {
 	std::string	uploadStore = _location.upload_dir;
@@ -441,10 +454,14 @@ void	Request::postRequest()
 		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
 		return (Log::console(WARNING,  " <" + _config.server_name + "> " + "Couldn't get content boundaries."));
 	}
+	if (contentType == "application/octet/stream" && boundary.empty())
+		content = _body;
 	if (contentType == "multipart/form-data" ||
 		contentType == "application/json" ||
 		contentType == "application/octet-stream")
 		content = getFileContentBoundary(boundary);
+	//else if (contentType == "application/octet-stream")
+	//	content = getFileContentOctetStream();
 	else
 		content = _body;
 	std::string	fileName = getFileName();
@@ -526,7 +543,7 @@ void 	Request::deleteRequest()
 	bool fileExists = check.is_open();
 	check.close();
 	if (!fileExists) {
-		Log::console(ERROR,  " <" + _config.server_name + "> " + "Failed to find file for deletion.");
+		Log::console(WARNING,  " <" + _config.server_name + "> " + "Failed to find file for deletion.");
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
 		//setErrorResponse(404);
 		return;

@@ -33,8 +33,10 @@
 							},
 							body: msg
 						})
-						.then(() => {
-							document.getElementById("display").innerText = msg;
+						.then(response => {
+							if (response.status === 200) {
+								document.getElementById("display").innerText = msg;
+							}
 						})
 						.catch(err => {
 							alert("Message post failed: " + err.message);

@@ -5,7 +5,7 @@
 		<link rel="stylesheet" href="/assets/css/main.css">
 		<link rel="stylesheet" href="/assets/css/header.css">
 		<link rel="stylesheet" href="/assets/css/navbar.css">
-		<title>Home</title>
+		<title>CGI test</title>
 	</head>
 	<body>
 		<div id="header">
@@ -21,9 +21,31 @@
 				.then(data => { document.getElementById('navbar').innerHTML = data; });
 			</script>
 			<div id="content">
-				<img src="/assets/img/cat-1.jpeg" alt="cat-1">
-				<img src="/assets/img/cat-2.jpeg" alt="cat-2">
-				<img src="/assets/img/cat-3.jpeg" alt="cat-3">
+				<h1>CGI TEST</h1>
+				<button id="run-cgi">Show me them kitties</button>
+				<div id="cgi-output"></div>
+				<script>
+					document.getElementById('run-cgi').addEventListener('click', () =>
+					{
+						fetch('./cgi-bin/test.cgi')
+						.then(response =>
+						{
+							if (!response.ok)
+							{
+								throw new Error('Network response was not ok');
+							}
+							return response.text();
+						})
+						.then(data =>
+						{
+							document.getElementById('cgi-output').innerHTML = data;
+						})
+						.catch(error =>
+						{
+							console.error('There was a problem with the fetch operation:', error);
+						});
+					});
+				</script>
 			</div>
 		</div>
 	</body>

@@ -36,8 +36,7 @@ int main(int argc, char **argv, char **env)
     if (argc == 2 && configExists(argv[1])) {
         try {
             ConfigParser    parser(argv[1]);
-            std::vector<ServerConfig>   servers = parser.parse();
-           // parser.serversPtr = &servers;
+    std::vector<ServerConfig>   servers = parser.parse();
 
             for (size_t i = 0; i < servers.size(); ++i)
             {

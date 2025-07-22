@@ -41,7 +41,6 @@ struct  ServerConfig {
 
 class   ConfigParser {
     private:
-        std::vector<ServerConfig>   *serversPtr;
         std::string filename_;
         ServerConfig    parseServer(std::ifstream& file, std::string& line);
         Location    parseLocation(std::ifstream& file);
