@@ -14,6 +14,14 @@ body
 	color: #333;
 }
 
+code {
+	color: #c7254e;
+	font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+	font-size: 1.05em;
+	padding: 0px 6px;
+	border-radius: 4px;
+}
+
 #container
 {
 	background-color: #fff;
