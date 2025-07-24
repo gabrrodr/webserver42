@@ -48,7 +48,7 @@ class   ConfigParser {
     public:
         ConfigParser(const std::string& filename);
         ~ConfigParser();
-        void    cleanupPendingFds(std::vector<pollfd> clientFds);
+        void    cleanupPendingFds(std::vector<pollfd> &clientFds);
         void    handleIncomingConnections(const std::vector<ServerConfig>& servers);
         void    handleClientRequests(std::vector<pollfd>& poll_fds, size_t& i, const std::vector<ServerConfig> &servers);
         void    setupListeningSocket(const ServerConfig &servers, std::vector<pollfd> *poll_fds, std::vector<ListeningSocket*> *sockets);

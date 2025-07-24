@@ -5,7 +5,6 @@
 Request::Request(const std::string& fullRequest, int fd, const std::vector<ServerConfig> &servers)
 {
 	//std::cout << fullRequest << '\n';
-	_fullRequest = fullRequest;
 	std::stringstream	ss(fullRequest);
 	_fullRequest = fullRequest;
 	ss >> _method >> _uri >> _protocol;
@@ -72,13 +71,13 @@ void Request::sendFullResponse(int fd, const std::string &response)
         ssize_t sent = send(fd, response.c_str() + totalSent, responseLength - totalSent, 0);
         if (sent < 0)
         {
-            Log::console(ERROR, " <" + _config.server_name + "> " + "Failed to send full response.");
+            Log::console(ERROR, "Failed to send full response.");
             break;
         }
         totalSent += sent;
     }
     if (totalSent < responseLength)
-        Log::console(ERROR, " <" + _config.server_name + "> " + "Response not fully send. Sent: " + toString(totalSent) + " of " + toString(responseLength));
+        Log::console(ERROR, "Response not fully send. Sent: " + toString(totalSent) + " of " + toString(responseLength));
 }
 
 // utils
@@ -128,11 +127,11 @@ void	Request::handleRequest()
 	else if (stat(_path.c_str(), &pathInfo) != 0 && _method != "DELETE" && _method != "POST")
 	{
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
-		Log::console(WARNING, " <" + _config.server_name + "> " +  "Resource doesn't exist: " + _uri);
+		Log::console(WARNING,  "Resource doesn't exist.");
 	}
 	else if (!methodIsAllowed(_method, _location.methods))
 	{
-		Log::console(WARNING,  " <" + _config.server_name + "> " + "Method " + _method + " isn't allowed in " + _location.url);
+		Log::console(WARNING,   "Method isn't allowed.");
 		sendErrorResponse(_fd, METH_NOT_ALLOWED, _config.error_page);
 	}
 	else
@@ -142,7 +141,7 @@ void	Request::handleRequest()
 			cgiRequest();
 			//if (_location.url != "/cgi-bin")
 			//{
-			//	Log::console(WARNING, " <" + _config.server_name + "> " + " This location isn't configured to handle CGI.");
+			//	Log::console(WARNING, " This location isn't configured to handle CGI.");
 			//	sendErrorResponse(_fd, 400, _config.error_page);
 			//}
 			//else
@@ -159,9 +158,10 @@ void	Request::handleRequest()
 		else if (_method == "POST")
 		{
 			if (payloadCheck(_config.client_max_body_size))
+			{
+				Log::console(WARNING, "Body exceeds limit.");
 				sendErrorResponse(_fd, LARGE_PAYLOAD, _config.error_page);
-//			else if (_uri == "/data")
-//				handleFileUpload();
+			}
 			else
 				postRequest();
 		}
@@ -282,7 +282,7 @@ void	Request::handleFileUpload(std::string fileName)
 {
 	size_t filenamePos = _body.find("filename=\"");
 	if (filenamePos == std::string::npos) {
-		Log::console(ERROR, " <" + _config.server_name + "> " + "Filename not found in request body.");
+		Log::console(ERROR, "Filename not found in request body.");
 		return;
 	}
 	//Getting the filename so we can store it with the correct name
@@ -292,7 +292,7 @@ void	Request::handleFileUpload(std::string fileName)
 	//now the content type
 	size_t contentTypePos = _body.find("Content-Type: ");
 	if (contentTypePos == std::string::npos) {
-		Log::console(ERROR, " <" + _config.server_name + "> " + "Content-Type not found in request body.");
+		Log::console(ERROR, "Content-Type not found in request body.");
 		return;
 	}
 	size_t contentTypeStart = contentTypePos + 15;
@@ -305,13 +305,13 @@ void	Request::handleFileUpload(std::string fileName)
 	std::string	workingDirectory = getWorkingDir();
 	std::string	dataPath = workingDirectory + _location.upload_dir;
 	if (mkdir(dataPath.c_str(), 0777) == -1 && errno != EEXIST) {
-		Log::console(ERROR, " <" + _config.server_name + "> " + "Failed to create directory.");
+		Log::console(ERROR, "Failed to create directory.");
 		return;
 	}
 	std::string	path = _location.root + _location.upload_dir;
 	std::ofstream file((path + '/' + _filename).c_str(), std::ios::binary);
 	if (!file) {
-		Log::console(ERROR, " <" + _config.server_name + "> " + "Failed to open file.");
+		Log::console(ERROR, "Failed to open file.");
 		return;
 	}
 	file.write(_content.c_str(), _content.length());
@@ -446,13 +446,13 @@ void	Request::postRequest()
 	if (contentType.empty())
 	{
 		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
-		return (Log::console(WARNING,  " <" + _config.server_name + "> " + "Couldn't get content type."));
+		return (Log::console(WARNING,   "Couldn't get content type."));
 	}
 	std::string	boundary = getBoundary();
 	if (boundary.empty() && contentType == "multipart/form-data")
 	{
 		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
-		return (Log::console(WARNING,  " <" + _config.server_name + "> " + "Couldn't get content boundaries."));
+		return (Log::console(WARNING,   "Couldn't get content boundaries."));
 	}
 	if (contentType == "application/octet/stream" && boundary.empty())
 		content = _body;
@@ -468,7 +468,7 @@ void	Request::postRequest()
 	if (content.empty() || (fileName.empty() && contentType == "multipart/form-data"))
 	{
 		sendErrorResponse(_fd, BAD_REQUEST, _config.error_page);
-		return (Log::console(WARNING,  " <" + _config.server_name + "> " + "couldn't process file."));
+		return (Log::console(WARNING,   "couldn't process file."));
 	}
 	makeDirectory(uploadStore);
 	if (contentType == "multipart/form-data" ||
@@ -491,7 +491,7 @@ void	Request::postRequest()
 		_path = _location.root + _location.upload_dir + "/upload.txt";
 		if (_location.upload_dir.empty())
 		{
-			Log::console(WARNING, " <" + _config.server_name + "> " + "Can't post, upload_dir is empty in this location.\n");
+			Log::console(WARNING, "Can't post, upload_dir is empty in this location.\n");
 		}
 		else
 		{
@@ -501,7 +501,7 @@ void	Request::postRequest()
 			std::ofstream file(_path.c_str(), std::ios::app);
 			if (!file.is_open())
 			{
-				Log::console(ERROR, " <" + _config.server_name + "> " + "Failed to open file for writing.");
+				Log::console(ERROR, "Failed to open file for writing.");
 				sendErrorResponse(_fd, INTERNAL_SERVER, _config.error_page);
 				//setErrorResponse(500);
 			}
@@ -543,7 +543,7 @@ void 	Request::deleteRequest()
 	bool fileExists = check.is_open();
 	check.close();
 	if (!fileExists) {
-		Log::console(WARNING,  " <" + _config.server_name + "> " + "Failed to find file for deletion.");
+		Log::console(WARNING,   "Failed to find file for deletion.");
 		sendErrorResponse(_fd, NOT_FOUND, _config.error_page);
 		//setErrorResponse(404);
 		return;
@@ -616,12 +616,42 @@ void	Request::cleanPath()
 	}
 }
 
+std::string	Request::joinPath(const std::string& a, const std::string& b)
+{
+    if (a.empty()) return b;
+    if (b.empty()) return a;
+    if (a[a.size() - 1] == '/' && b[0] == '/')
+ 	   return a + b.substr(1);
+    if (a[a.size() - 1] != '/' && b[0] != '/')
+ 	   return a + "/" + b;
+    return a + b;
+}
+
 void	Request::setPath()
 {
-	if (_uri == _location.url || _uri == _location.url + "/")
-		_path = _location.root + "/" + _location.index;
+	//std::cout << YELLOW << "SETTING PATH\n"
+	//			<< "_uri:  " << _uri
+	//			<< "\n_location.url: " << _location.url 
+	//			<< "\n_location.root: " << _location.root
+	//			<< "\n_location.index: " << _location.index 
+	//			<< "\n_location.root: " << _location.root
+	//			<< RESET << '\n';
+	std::string relative_uri = _uri.substr(_location.url.length());
+	if (_uri.find("/cgi-bin") == 0)
+		_path = joinPath(_location.root, _uri);
+	else if (_uri == _location.url || _uri == _location.url + "/")
+	{
+		_path = joinPath(_location.root, _location.index);
+		//std::cout << YELLOW << "_path = _location.root + \"/\" + _location.index;\n" << _path <<  RESET <<'\n'; 
+	}
+	else if (_uri[_uri.size() - 1] == '/') {
+		_path = joinPath(joinPath(_location.root, relative_uri), _location.index);
+	}
 	else
-		_path = _location.root + _uri;
+	{
+		_path = joinPath(_location.root, relative_uri);
+		//std::cout << YELLOW << "_path = _location.root + relative_uri;\n" << _path <<  RESET <<'\n'; 
+	}
 }
 
 void	Request::setContentType()
@@ -732,7 +762,6 @@ void	Request::setConfig(const std::vector<ServerConfig> &servers)
 		hostStr = _fullRequest.substr(hostPos, lineEnd - hostPos);
 		host = hostStr.substr(hostStr.size() - 4, hostStr.size());
 	}
-	
 	for (size_t i = 0; i < svConf.size(); i++)
 	{
 		std::vector<int>	currPorts = svConf[i].port;
@@ -743,6 +772,11 @@ void	Request::setConfig(const std::vector<ServerConfig> &servers)
 				_config = svConf[i];
 			}
 		}
+	}
+	if (_config.server_name.empty())
+	{
+		if (!svConf[0].server_name.empty())
+			_config = svConf[0];
 	}
 }
 
@@ -760,8 +794,7 @@ void	Request::setRedirectResponse()
 
 void	Request::handleAutoIndexResponse()
 {
-	std::string	pathTest = _location.root + _uri;
-	DIR	*dir = opendir(pathTest.c_str()); // returns a pointer to the directory stream
+	DIR	*dir = opendir(_path.c_str()); // returns a pointer to the directory stream
 	if (!dir)
 	{
 		Log::console(ERROR,  " <" + _config.server_name + "> " + "Failed to open dir: " + _path + " for autoindexing.\n");

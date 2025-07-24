@@ -68,7 +68,7 @@ void	CGIRequest::initCGIExecEnv()
 
 	_envExec = new char *[_env.size() + 1];
 	if (!_envExec)
-		Log::console(ERROR, " <" + _config.server_name + "> " + "Error allocating memory for env variables.");
+		Log::console(ERROR, "Error allocating memory for env variables.");
 	for(; it != ite; ++it, i++)
 	{
 		std::string var = it->first + "=" + it->second;
@@ -202,7 +202,7 @@ void	CGIRequest::getInterpreter()
 {
 	if (std::abs((int)(_location.cgi_extension.size() - _location.cgi_path.size())) > 1)
 	{
-		Log::console(ERROR, " <" + _config.server_name + "> " + "CGI extension and CGI path size difference is greater than 1.");
+		Log::console(ERROR, "CGI extension and CGI path size difference is greater than 1.");
 		_interpreter = _scriptPath;
 		return ;
 	}
@@ -313,7 +313,7 @@ void	CGIRequest::handleRequest()
 		dup2(_pipeChild[1], STDOUT_FILENO);
 		close(_pipeChild[1]);
 		if (execve(_argv[0], _argv, _envExec) == -1)
-			Log::console(ERROR, " <" + _config.server_name + "> " + "Couldn't run cgi script : " + static_cast<std::string>(_argv[0]) + '\n');
+			Log::console(ERROR, "Couldn't run cgi script : " + static_cast<std::string>(_argv[0]) + '\n');
 	}
 	else // parent process
 	{
@@ -383,7 +383,7 @@ void	CGIRequest::handleRequest()
 					header += "Content-Length: " + toString(content.length()) + " \r\n";
 					header += "Connection: clone\r\n\r\n";
 					response += header + content;
-					Log::console(WARNING, " <" + _config.server_name + "> " +  "Couldn't run script.");
+					Log::console(WARNING,  "Couldn't run script.");
 					send(_client_fd, response.c_str(), response.length(), 0);
 				}
 				close(_client_fd);

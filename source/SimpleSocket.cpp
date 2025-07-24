@@ -7,6 +7,11 @@ SimpleSocket::SimpleSocket(int domain, int serviceType, int protocol, int port, 
     address.sin_addr.s_addr = htonl(ip);
     //establish socket
     this->sock = socket(domain, serviceType, protocol);
+    int opt = 1;
+    if (setsockopt(this->sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+    {
+        throw std::runtime_error("Failed to set socket opt.");
+    }
     test_connection(sock);
     //bind function called on the server side code. 
     //connect in client side

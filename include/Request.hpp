@@ -52,11 +52,13 @@ class Request
 		void	makeDirectory(std::string &directory);
 		void	sendPostResponse(std::string resource);
 		bool	payloadCheck(long unsigned int max_body_size);
+		bool	specialPathCase();
 		std::string	getBoundary();
 		std::string	getFileContentBoundary(std::string &boundary);
 		std::string	getFileName();
 		std::string	getContentType();
 		std::string	getDeletePath();
+		std::string	joinPath(const std::string& a, const std::string& b);
 		const std::string	&getMethod() const;
 		const std::string	&getUri() const;
 		const std::string	&getProtocol() const;
